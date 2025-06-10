@@ -1,0 +1,89 @@
+<div class="chat-list-container">
+  <!-- Header -->
+  <div class="header">
+    @if (currentUser$ | async; as user) {
+    <div class="user-info">
+      <div class="user-avatar">
+        <span>{{ getAvatarInitials(user.name) }}</span>
+        <div
+          class="status-indicator"
+          [style.background-color]="
+            user.status === 'online'
+              ? '#4caf50'
+              : user.status === 'away'
+              ? '#ff9800'
+              : '#9e9e9e'
+          ">
+        </div>
+      </div>
+
+      <div class="user-details">
+        <h2>{{ user.name }}</h2>
+        <span class="status">{{ user.status }}</span>
+      </div>
+    </div>
+    }
+
+    <div class="header-actions">
+      <button class="icon-button">
+        <i class="material-icons">search</i>
+      </button>
+      <button class="icon-button">
+        <i class="material-icons">more_vert</i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat List -->
+  <div class="chat-list">
+    @for (chat of chats$ | async; track chat.id) {
+    <div
+      class="chat-item"
+      [routerLink]="['/chat', chat.id]"
+      (click)="openChat(chat)">
+      <div class="chat-avatar">
+        <span>{{ getAvatarInitials(chat.name) }}</span>
+        @if (chat.isGroup) {
+        <div class="group-indicator">
+          <i class="material-icons">group</i>
+        </div>
+        }
+      </div>
+
+      <div class="chat-info">
+        <div class="chat-header">
+          <h3 class="chat-name">{{ chat.name }}</h3>
+          @if (chat.lastMessage?.timestamp) {
+          <span class="chat-time">{{
+            getLastMessageTime(chat.lastMessage?.timestamp)
+          }}</span>
+          }
+        </div>
+
+        <div class="chat-preview">
+          @if (chat.lastMessage) {
+          <p class="last-message">{{ chat.lastMessage.content }}</p>
+          } @else {
+          <p class="last-message no-messages">No messages yet</p>
+          } @if (chat.unreadCount > 0) {
+          <span class="unread-count">{{ chat.unreadCount }}</span>
+          }
+        </div>
+      </div>
+    </div>
+    } @empty {
+    <div class="empty-state">
+      <i class="material-icons">chat_bubble_outline</i>
+      <h3>No chats yet</h3>
+      <p>Start a new conversation by tapping the + button</p>
+    </div>
+    }
+  </div>
+
+  <!-- Floating Action Button -->
+  <button
+    class="fab"
+    routerLink="/new-chat">
+    <i class="material-icons">add</i>
+  </button>
+</div>

@@ -1,0 +1,104 @@
+<div class="chat-room-container">
+  <!-- Header -->
+  <div class="chat-header">
+    <button
+      class="back-button"
+      (click)="goBack()">
+      <i class="material-icons">arrow_back</i>
+    </button>
+
+    <div class="chat-info">
+      <div class="chat-avatar">
+        <span
+          >{{ chatName.split(' ').map(n => n[0]).join('').toUpperCase() }}</span
+        >
+        @if (isGroup) {
+        <div class="group-indicator">
+          <i class="material-icons">group</i>
+        </div>
+        }
+      </div>
+
+      <div class="chat-details">
+        <h2>{{ chatName }}</h2>
+        @if (isGroup) {
+        <span class="participant-count">Group chat</span>
+        } @else {
+        <span class="status">Online</span>
+        }
+      </div>
+    </div>
+
+    <div class="chat-actions">
+      <button class="icon-button">
+        <i class="material-icons">videocam</i>
+      </button>
+      <button class="icon-button">
+        <i class="material-icons">call</i>
+      </button>
+      <button class="icon-button">
+        <i class="material-icons">more_vert</i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div
+    class="messages-container"
+    #messagesContainer>
+    @for (message of messages$ | async; track message.id) {
+    <div
+      class="message"
+      [class.own-message]="isOwnMessage(message)">
+      <div class="message-bubble">
+        @if (isGroup && !isOwnMessage(message)) {
+        <div class="sender-name">
+          {{ message.sender.name }}
+        </div>
+        }
+
+        <div class="message-content">
+          {{ message.content }}
+        </div>
+
+        <div class="message-time">
+          {{ getMessageTime(message.timestamp) }}
+        </div>
+      </div>
+    </div>
+    } @empty {
+    <div class="empty-messages">
+      <i class="material-icons">chat_bubble_outline</i>
+      <p>No messages yet. Start the conversation!</p>
+    </div>
+    }
+  </div>
+
+  <!-- Message Input -->
+  <div class="message-input-container">
+    <div class="message-input">
+      <button class="attachment-button">
+        <i class="material-icons">attach_file</i>
+      </button>
+
+      <input
+        type="text"
+        [(ngModel)]="newMessage"
+        (keyup.enter)="sendMessage()"
+        placeholder="Type a message..."
+        class="input-field"
+        #messageInput />
+
+      <button class="emoji-button">
+        <i class="material-icons">emoji_emotions</i>
+      </button>
+
+      <button
+        class="send-button"
+        (click)="sendMessage()"
+        [disabled]="!newMessage.trim()">
+        <i class="material-icons">send</i>
+      </button>
+    </div>
+  </div>
+</div>

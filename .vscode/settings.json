@@ -1,0 +1,13 @@
+{
+    "eslint.validate": [
+        "typescript",
+        "html"
+    ],
+    "eslint.format.enable": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "eslint.codeAction.showDocumentation": {
+        "enable": true
+    },
+    "typescript.preferences.importModuleSpecifier": "relative"
+}

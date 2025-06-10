@@ -1,0 +1,22 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1976d2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#42a5f5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="96" cy="96" r="96" fill="url(#gradient)"/>
+
+  <!-- Chat bubble main -->
+  <rect x="38.400000000000006" y="48" width="96" height="67.19999999999999" rx="15.36" fill="white" opacity="0.9"/>
+
+  <!-- Chat bubble tail -->
+  <polygon points="38.400000000000006,105.60000000000001 28.799999999999997,124.80000000000001 38.400000000000006,115.19999999999999" fill="white" opacity="0.9"/>
+
+  <!-- Chat lines -->
+  <line x1="53.760000000000005" y1="67.19999999999999" x2="119.03999999999999" y2="67.19999999999999" stroke="#1976d2" stroke-width="3.84" stroke-linecap="round"/>
+  <line x1="53.760000000000005" y1="86.4" x2="105.60000000000001" y2="86.4" stroke="#1976d2" stroke-width="3.84" stroke-linecap="round"/>
+  <line x1="53.760000000000005" y1="99.84" x2="92.16" y2="99.84" stroke="#1976d2" stroke-width="3.84" stroke-linecap="round"/>
+</svg>

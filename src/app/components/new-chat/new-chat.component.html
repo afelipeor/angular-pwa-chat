@@ -1,0 +1,122 @@
+<div class="new-chat-container">
+  <!-- Header -->
+  <div class="header">
+    <button
+      class="back-button"
+      (click)="goBack()">
+      <i class="material-icons">arrow_back</i>
+    </button>
+
+    <div class="header-info">
+      <h2>New Chat</h2>
+      @if (selectedContacts.length > 0) {
+      <span class="subtitle"> {{ selectedContacts.length }} selected </span>
+      }
+    </div>
+
+    <button
+      class="create-button"
+      [disabled]="selectedContacts.length === 0"
+      (click)="createChat()">
+      <i class="material-icons">check</i>
+    </button>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <div class="search-bar">
+      <i class="material-icons">search</i>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        placeholder="Search contacts..."
+        class="search-input" />
+    </div>
+  </div>
+
+  <!-- Selected Contacts Chips -->
+  @if (selectedContacts.length > 0) {
+  <div class="selected-contacts">
+    @for (contact of selectedContacts; track contact.id) {
+    <div class="selected-contact-chip">
+      <div class="contact-avatar">
+        <span>{{ getAvatarInitials(contact.name) }}</span>
+      </div>
+      <span class="contact-name">{{ contact.name }}</span>
+      <button
+        class="remove-button"
+        (click)="removeSelectedContact(contact)">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- Group Name Input -->
+  @if (showGroupNameInput) {
+  <div class="group-name-container">
+    <div class="input-group">
+      <i class="material-icons">group</i>
+      <input
+        type="text"
+        [(ngModel)]="groupName"
+        placeholder="Enter group name..."
+        class="group-name-input" />
+    </div>
+  </div>
+  }
+
+  <!-- Contacts List -->
+  <div class="contacts-list">
+    <div class="section-header">
+      <h3>Contacts</h3>
+      <span class="contact-count">{{ filteredContacts.length }}</span>
+    </div>
+
+    @for (contact of filteredContacts; track contact.id) {
+    <div
+      class="contact-item"
+      (click)="toggleContactSelection(contact)"
+      [class.selected]="isContactSelected(contact)">
+      <div class="contact-info">
+        <div class="contact-avatar">
+          @if (!contact.avatar) {
+          <span>{{ getAvatarInitials(contact.name) }}</span>
+          } @else {
+          <img
+            [src]="contact.avatar"
+            [alt]="contact.name" />
+          }
+          <div
+            class="status-indicator"
+            [style.background-color]="getStatusColor(contact.status)">
+          </div>
+        </div>
+
+        <div class="contact-details">
+          <h3 class="contact-name">{{ contact.name }}</h3>
+          <p class="contact-email">{{ contact.email }}</p>
+          <span class="contact-status">{{ contact.status }}</span>
+        </div>
+      </div>
+
+      <div class="selection-indicator">
+        <div
+          class="checkbox"
+          [class.checked]="isContactSelected(contact)">
+          @if (isContactSelected(contact)) {
+          <i class="material-icons">check</i>
+          }
+        </div>
+      </div>
+    </div>
+    } @empty {
+    <div class="empty-state">
+      <i class="material-icons">search_off</i>
+      <h3>No contacts found</h3>
+      <p>Try adjusting your search terms</p>
+    </div>
+    }
+  </div>
+</div>
