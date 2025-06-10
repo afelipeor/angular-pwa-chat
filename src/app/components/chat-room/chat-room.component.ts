@@ -1,17 +1,20 @@
 import { CommonModule } from '@angular/common';
-import {
-  AfterViewChecked,
-  Component,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-} from '@angular/core';
+import
+  {
+    AfterViewChecked,
+    ChangeDetectionStrategy,
+    Component,
+    ElementRef,
+    OnDestroy,
+    OnInit,
+    inject
+  } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { AuthService, User } from '../../services/auth.service';
+import { User } from '../../models';
+import { AuthService } from '../../services/auth.service';
 import { ChatService, Message } from '../../services/chat.service';
 
 @Component({
@@ -20,9 +23,11 @@ import { ChatService, Message } from '../../services/chat.service';
   imports: [CommonModule, FormsModule],
   templateUrl: './chat-room.component.html',
   styleUrls: ['./chat-room.component.scss'],
-})
-export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('messagesContainer') messagesContainer!: ElementRef;
+  changeDetection: ChangeDetectionStrategy.OnPush,
+} )
+export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked
+{
+  readonly messagesContainer = viewChild.required<ElementRef>('messagesContainer');
 
   messages$: Observable<Message[]>;
   currentUser$: Observable<User | null>;
@@ -33,16 +38,16 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private destroy$ = new Subject<void>();
   private shouldScrollToBottom = false;
+  chatService = inject(ChatService);
+  authService = inject(AuthService);
+  router = inject(Router);
+  route = inject(ActivatedRoute);
 
-  constructor(
-    private chatService: ChatService,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {
+  constructor() {
     this.messages$ = this.chatService.messages$;
     this.currentUser$ = this.authService.currentUser$;
   }
+
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
@@ -100,10 +105,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       hour: '2-digit',
       minute: '2-digit',
     });
-  }
-
-  trackByMessageId(index: number, message: Message): string {
-    return message.id;
   }
 
   private scrollToBottom(): void {

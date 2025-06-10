@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
-import { AuthService, User } from '../../services/auth.service';
+import { User } from '../../models';
+import { AuthService } from '../../services/auth.service';
 import { Chat, ChatService } from '../../services/chat.service';
 import { ChatListComponent } from './chat-list.component';
 

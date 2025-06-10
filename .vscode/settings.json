@@ -1,11 +1,24 @@
 {
+    "eslint.validate": [
+        "typescript",
+        "html"
+    ],
     "eslint.format.enable": true,
+    "stylelint.validate": [
+        "scss",
+        "sass"
+    ],
     "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": "always",
-        "source.organizeImports": "always"
-    },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[scss]": {
+        "editor.defaultFormatter": "stylelint.vscode-stylelint"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[html]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
     "eslint.codeAction.showDocumentation": {
         "enable": true
     },

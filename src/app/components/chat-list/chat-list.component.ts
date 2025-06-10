@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
-import { AuthService, User } from '../../services/auth.service';
+import { User } from '../../models';
+import { AuthService, } from '../../services/auth.service';
 import { Chat, ChatService } from '../../services/chat.service';
 
 @Component({
@@ -11,15 +12,16 @@ import { Chat, ChatService } from '../../services/chat.service';
   imports: [CommonModule, RouterModule],
   templateUrl: './chat-list.component.html',
   styleUrls: ['./chat-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatListComponent implements OnInit {
   chats$: Observable<Chat[]>;
   currentUser$: Observable<User | null>;
 
-  constructor(
-    private chatService: ChatService,
-    private authService: AuthService
-  ) {
+  chatService = inject(ChatService);
+  authService = inject(AuthService);
+
+  constructor() {
     this.chats$ = this.chatService.chats$;
     this.currentUser$ = this.authService.currentUser$;
   }

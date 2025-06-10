@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { AuthService, User } from './auth.service';
 import { PushNotificationService } from './push-notification.service';
@@ -36,11 +36,11 @@ export class ChatService {
   private selectedChatSubject = new BehaviorSubject<Chat | null>(null);
   public selectedChat$ = this.selectedChatSubject.asObservable();
 
-  constructor(
-    private http: HttpClient,
-    private authService: AuthService,
-    private pushService: PushNotificationService
-  ) {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  private pushService = inject(PushNotificationService);
+
+  constructor() {
     this.initializeMockChats();
   }
 

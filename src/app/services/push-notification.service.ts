@@ -1,55 +1,129 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PushNotificationService {
-  readonly VAPID_PUBLIC_KEY =
+  private readonly VAPID_PUBLIC_KEY =
     'BKxUrVbKnAXkGAhCPLhwTr1VNhHcHVxl5v1xVP_qfTSgXvd0OKnO8PJlqfQEz3SjhKvhVFUJTK1MPTL5UjJ5zsg';
 
-  constructor(private swPush: SwPush, private http: HttpClient) {}
+  private readonly swPush = inject(SwPush);
+  private readonly http = inject(HttpClient);
 
-  subscribeToNotifications(): void {
+  /**
+   * Subscribe to push notifications
+   * @returns Promise that resolves when subscription is complete
+   */
+  subscribeToNotifications(): Promise<void> {
     if (!this.swPush.isEnabled) {
-      console.log('Push notifications are not enabled');
-      return;
+      console.warn('Push notifications are not enabled');
+      return Promise.resolve();
     }
 
-    this.swPush
+    return this.swPush
       .requestSubscription({
         serverPublicKey: this.VAPID_PUBLIC_KEY,
       })
-      .then((sub) => {
-        console.log('Push subscription:', sub);
-        this.sendSubscriptionToServer(sub);
+      .then((subscription: PushSubscription) => {
+        console.log('Push subscription successful:', subscription);
+        this.sendSubscriptionToServer(subscription);
       })
-      .catch((err) =>
-        console.error('Could not subscribe to notifications', err)
-      );
+      .catch((error: Error) => {
+        console.error('Could not subscribe to notifications:', error);
+        throw error;
+      });
   }
 
+  /**
+   * Send subscription to server
+   * @param subscription - The push subscription object
+   */
   private sendSubscriptionToServer(subscription: PushSubscription): void {
     // In a real app, send this subscription to your backend
     console.log('Subscription sent to server:', subscription);
+
+    // Example implementation:
+    // this.http.post('/api/notifications/subscribe', subscription)
+    //   .pipe(
+    //     catchError((error) => {
+    //       console.error('Failed to send subscription to server:', error);
+    //       return EMPTY;
+    //     })
+    //   )
+    //   .subscribe();
   }
 
-  showNotification(title: string, body: string, data?: any): void {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
+  /**
+   * Show a notification to the user
+   * @param title - Notification title
+   * @param body - Notification body
+   * @param data - Optional data payload
+   */
+  showNotification(
+    title: string,
+    body: string,
+    data?: Record<string, unknown>
+  ): void {
+    if (!('Notification' in window)) {
+      console.warn('Notifications are not supported in this browser');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      const notification = new Notification(title, {
         body,
         icon: '/assets/icons/icon-192x192.png',
         badge: '/assets/icons/icon-72x72.png',
         data,
       });
+
+      // Auto-close notification after 5 seconds
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
+    } else {
+      console.warn('Notification permission not granted');
     }
   }
 
-  requestNotificationPermission(): Promise<NotificationPermission> {
+  /**
+   * Request notification permission from the user
+   * @returns Promise that resolves with the permission status
+   */
+  async requestNotificationPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
-      return Promise.resolve('denied');
+      console.warn('Notifications are not supported in this browser');
+      return 'denied';
     }
-    return Notification.requestPermission();
+
+    try {
+      const permission = await Notification.requestPermission();
+      console.log('Notification permission:', permission);
+      return permission;
+    } catch (error: unknown) {
+      console.error('Error requesting notification permission:', error);
+      return 'denied';
+    }
+  }
+
+  /**
+   * Check if notifications are supported and permitted
+   * @returns boolean indicating if notifications are available
+   */
+  isNotificationSupported(): boolean {
+    return 'Notification' in window && Notification.permission === 'granted';
+  }
+
+  /**
+   * Get current notification permission status
+   * @returns current permission status
+   */
+  getNotificationPermission(): NotificationPermission {
+    if (!('Notification' in window)) {
+      return 'denied';
+    }
+    return Notification.permission;
   }
 }

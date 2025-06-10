@@ -1,13 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  status: 'online' | 'offline' | 'away';
-}
 
 @Injectable({
   providedIn: 'root',
