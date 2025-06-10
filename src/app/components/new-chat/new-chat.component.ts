@@ -11,11 +11,10 @@ interface Contact extends User {
 }
 
 @Component({
-  selector: 'app-new-chat',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './new-chat.component.html',
-  styleUrls: ['./new-chat.component.scss'],
+    selector: 'app-new-chat',
+    imports: [CommonModule, FormsModule],
+    templateUrl: './new-chat.component.html',
+    styleUrls: ['./new-chat.component.scss']
 })
 export class NewChatComponent implements OnInit {
   contacts: Contact[] = [];

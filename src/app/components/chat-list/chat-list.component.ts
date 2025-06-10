@@ -7,12 +7,11 @@ import { AuthService, } from '../../services/auth.service';
 import { Chat, ChatService } from '../../services/chat.service';
 
 @Component({
-  selector: 'app-chat-list',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
-  templateUrl: './chat-list.component.html',
-  styleUrls: ['./chat-list.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-chat-list',
+    imports: [CommonModule, RouterModule],
+    templateUrl: './chat-list.component.html',
+    styleUrls: ['./chat-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatListComponent implements OnInit {
   chats$: Observable<Chat[]>;

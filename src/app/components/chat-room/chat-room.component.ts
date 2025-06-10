@@ -18,12 +18,11 @@ import { AuthService } from '../../services/auth.service';
 import { ChatService, Message } from '../../services/chat.service';
 
 @Component({
-  selector: 'app-chat-room',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './chat-room.component.html',
-  styleUrls: ['./chat-room.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-chat-room',
+    imports: [CommonModule, FormsModule],
+    templateUrl: './chat-room.component.html',
+    styleUrls: ['./chat-room.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 } )
 export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked
 {
