@@ -7,13 +7,7 @@
         <span>{{ getAvatarInitials(user.name) }}</span>
         <div
           class="status-indicator"
-          [style.background-color]="
-            user.status === 'online'
-              ? '#4caf50'
-              : user.status === 'away'
-              ? '#ff9800'
-              : '#9e9e9e'
-          ">
+          [style.background-color]="getStatusColor(user.status)">
         </div>
       </div>
 
@@ -55,7 +49,7 @@
           <h3 class="chat-name">{{ chat.name }}</h3>
           @if (chat.lastMessage?.timestamp) {
           <span class="chat-time">{{
-            getLastMessageTime(chat.lastMessage?.timestamp)
+            getLastMessageTime(chat.lastMessage.timestamp)
           }}</span>
           }
         </div>

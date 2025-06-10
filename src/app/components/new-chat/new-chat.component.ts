@@ -33,57 +33,7 @@ export class NewChatComponent implements OnInit {
     this.currentUser$ = this.authService.currentUser$;
   }
 
-  ngOnInit(): void {
-    this.loadContacts();
-  }
-
-  private loadContacts(): void {
-    this.contacts = [
-      {
-        id: '2',
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
-        status: 'online',
-        avatar: '',
-      },
-      {
-        id: '3',
-        name: 'Bob Smith',
-        email: 'bob@example.com',
-        status: 'away',
-        avatar: '',
-      },
-      {
-        id: '4',
-        name: 'Carol Davis',
-        email: 'carol@example.com',
-        status: 'online',
-        avatar: '',
-      },
-      {
-        id: '5',
-        name: 'David Wilson',
-        email: 'david@example.com',
-        status: 'offline',
-        avatar: '',
-      },
-      {
-        id: '6',
-        name: 'Emma Brown',
-        email: 'emma@example.com',
-        status: 'online',
-        avatar: '',
-      },
-      {
-        id: '7',
-        name: 'Frank Miller',
-        email: 'frank@example.com',
-        status: 'away',
-        avatar: '',
-      },
-    ];
-  }
-
+  // Getters
   get filteredContacts(): Contact[] {
     if (!this.searchTerm) {
       return this.contacts;
@@ -96,6 +46,12 @@ export class NewChatComponent implements OnInit {
     );
   }
 
+  // Lifecycle methods
+  ngOnInit(): void {
+    this.loadContacts();
+  }
+
+  // Public methods
   toggleContactSelection(contact: Contact): void {
     const index = this.selectedContacts.findIndex((c) => c.id === contact.id);
 
@@ -167,11 +123,59 @@ export class NewChatComponent implements OnInit {
     return this.selectedContacts.some((c) => c.id === contact.id);
   }
 
-  trackByContactId(index: number, contact: Contact): string {
+  trackByContactId(_index: number, contact: Contact): string {
     return contact.id;
   }
 
-  trackBySelectedContactId(index: number, contact: Contact): string {
+  trackBySelectedContactId(_index: number, contact: Contact): string {
     return contact.id;
+  }
+
+  // Private methods
+  private loadContacts(): void {
+    this.contacts = [
+      {
+        id: '2',
+        name: 'Alice Johnson',
+        email: 'alice@example.com',
+        status: 'online',
+        avatar: '',
+      },
+      {
+        id: '3',
+        name: 'Bob Smith',
+        email: 'bob@example.com',
+        status: 'away',
+        avatar: '',
+      },
+      {
+        id: '4',
+        name: 'Carol Davis',
+        email: 'carol@example.com',
+        status: 'online',
+        avatar: '',
+      },
+      {
+        id: '5',
+        name: 'David Wilson',
+        email: 'david@example.com',
+        status: 'offline',
+        avatar: '',
+      },
+      {
+        id: '6',
+        name: 'Emma Brown',
+        email: 'emma@example.com',
+        status: 'online',
+        avatar: '',
+      },
+      {
+        id: '7',
+        name: 'Frank Miller',
+        email: 'frank@example.com',
+        status: 'away',
+        avatar: '',
+      },
+    ];
   }
 }

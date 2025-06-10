@@ -71,7 +71,16 @@ export class ChatListComponent implements OnInit {
       .toUpperCase();
   }
 
-  trackByChatId(_index: number, chat: Chat): string {
-    return chat.id;
+  getStatusColor(status: string): string {
+    switch (status) {
+      case 'online':
+        return '#4caf50';
+      case 'away':
+        return '#ff9800';
+      case 'offline':
+        return '#9e9e9e';
+      default:
+        return '#9e9e9e';
+    }
   }
 }

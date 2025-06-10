@@ -1,11 +1,11 @@
 {
-    "eslint.validate": [
-        "typescript",
-        "html"
-    ],
     "eslint.format.enable": true,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "always",
+        "source.organizeImports": "always"
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "eslint.codeAction.showDocumentation": {
         "enable": true
     },
