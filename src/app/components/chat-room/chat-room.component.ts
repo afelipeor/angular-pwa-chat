@@ -1,32 +1,33 @@
 import { CommonModule } from '@angular/common';
-import
-  {
-    AfterViewChecked,
-    ChangeDetectionStrategy,
-    Component,
-    ElementRef,
-    OnDestroy,
-    OnInit,
-    inject
-  } from '@angular/core';
+import {
+  AfterViewChecked,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { User } from '../../models';
+import { Message, User } from '../../models';
 import { AuthService } from '../../services/auth.service';
-import { ChatService, Message } from '../../services/chat.service';
+import { ChatService } from '../../services/chat.service';
 
 @Component({
-    selector: 'app-chat-room',
-    imports: [CommonModule, FormsModule],
-    templateUrl: './chat-room.component.html',
-    styleUrls: ['./chat-room.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush
-} )
-export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked
-{
-  readonly messagesContainer = viewChild.required<ElementRef>('messagesContainer');
+  standalone: true,
+  selector: 'app-chat-room',
+  imports: [CommonModule, FormsModule],
+  templateUrl: './chat-room.component.html',
+  styleUrls: ['./chat-room.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
+  readonly messagesContainer =
+    viewChild.required<ElementRef>('messagesContainer');
 
   messages$: Observable<Message[]>;
   currentUser$: Observable<User | null>;
@@ -46,7 +47,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.messages$ = this.chatService.messages$;
     this.currentUser$ = this.authService.currentUser$;
   }
-
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
@@ -106,11 +106,19 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     });
   }
 
+  getChatInitials(): string {
+    return this.chatName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  }
+
   private scrollToBottom(): void {
     try {
-      if (this.messagesContainer) {
-        this.messagesContainer.nativeElement.scrollTop =
-          this.messagesContainer.nativeElement.scrollHeight;
+      if (this.messagesContainer()) {
+        this.messagesContainer().nativeElement.scrollTop =
+          this.messagesContainer().nativeElement.scrollHeight;
       }
     } catch (err) {
       console.error('Error scrolling to bottom:', err);

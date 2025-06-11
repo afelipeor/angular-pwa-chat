@@ -1,9 +1,10 @@
 import { Attachment } from './attachment.model';
+import { User } from './user.model';
 
 export interface Message {
   id: string;
   chatId: string;
-  senderId: string;
+  sender: User;
   content: string;
   timestamp: Date;
   type: MessageType;
@@ -12,4 +13,4 @@ export interface Message {
   attachments?: Attachment[];
 }
 export type MessageType = 'text' | 'image' | 'file' | 'audio';
-export type MessageStatus = 'sent' | 'delivered' | 'read';
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';

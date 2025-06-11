@@ -1,10 +1,8 @@
-export interface Contact {
-  id: string;
-  name: string;
-  email: string;
+import { User } from './user.model';
+
+export interface Contact extends User {
   phone?: string;
-  avatar?: string;
-  status: 'online' | 'offline' | 'away';
   lastSeen?: Date;
   isBlocked?: boolean;
+  selected?: boolean;
 }

@@ -92,6 +92,7 @@ module.exports = [
   // HTML template files configuration
   {
     files: ['**/*.html'],
+    extends: ['plugin:@angular-eslint/template/recommended'],
     plugins: {
       '@angular-eslint/template': angularTemplateEslint,
     },
@@ -99,10 +100,15 @@ module.exports = [
       ...angularTemplateEslint.configs.recommended.rules,
       '@angular-eslint/template/banana-in-box': 'error',
       '@angular-eslint/template/no-negated-async': 'error',
+      '@angular-eslint/template/eqeqeq': 'error',
+      '@angular-eslint/template/attributes-order': 'error',
       '@angular-eslint/template/conditional-complexity': [
         'error',
         { maxComplexity: 3 },
       ],
+      'prefer-at-empty': 'warn',
+      'prefer-control-flow': 'error',
+      'prefer-static-string-properties': 'error',
       '@angular-eslint/template/cyclomatic-complexity': [
         'error',
         { maxComplexity: 5 },

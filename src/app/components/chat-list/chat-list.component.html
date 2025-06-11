@@ -49,7 +49,7 @@
           <h3 class="chat-name">{{ chat.name }}</h3>
           @if (chat.lastMessage?.timestamp) {
           <span class="chat-time">{{
-            getLastMessageTime(chat.lastMessage.timestamp)
+            getLastMessageTime(chat.lastMessage?.timestamp)
           }}</span>
           }
         </div>

@@ -9,9 +9,7 @@
 
     <div class="chat-info">
       <div class="chat-avatar">
-        <span
-          >{{ chatName.split(' ').map(n => n[0]).join('').toUpperCase() }}</span
-        >
+        <span>{{ getChatInitials() }}</span>
         @if (isGroup) {
         <div class="group-indicator">
           <i class="material-icons">group</i>

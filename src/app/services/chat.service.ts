@@ -1,27 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { AuthService, User } from './auth.service';
+import { Chat, Message, User } from '../models';
+import { AuthService } from './auth.service';
 import { PushNotificationService } from './push-notification.service';
-
-export interface Message {
-  id: string;
-  content: string;
-  timestamp: Date;
-  sender: User;
-  chatId: string;
-  type: 'text' | 'image' | 'file';
-}
-
-export interface Chat {
-  id: string;
-  name: string;
-  participants: User[];
-  lastMessage?: Message;
-  unreadCount: number;
-  avatar?: string;
-  isGroup: boolean;
-}
 
 @Injectable({
   providedIn: 'root',
@@ -72,7 +54,10 @@ export class ChatService {
           },
           chatId: '1',
           type: 'text',
+          status: 'sent',
         },
+        createdAt: new Date(Date.now() - 7200000),
+        updatedAt: new Date(Date.now() - 600000),
       },
       {
         id: '2',
@@ -105,8 +90,11 @@ export class ChatService {
             status: 'away',
           },
           chatId: '2',
+          status: 'read',
           type: 'text',
         },
+        createdAt: new Date(Date.now() - 7200000),
+        updatedAt: new Date(Date.now() - 600000),
       },
     ];
     this.chatsSubject.next(mockChats);
@@ -143,6 +131,7 @@ export class ChatService {
       sender: currentUser,
       chatId,
       type: 'text',
+      status: 'sending',
     };
 
     const currentMessages = this.messagesSubject.value;
@@ -171,6 +160,7 @@ export class ChatService {
         },
         chatId,
         type: 'text',
+        status: 'read',
       },
       {
         id: '2',
@@ -179,6 +169,7 @@ export class ChatService {
         sender: this.authService.getCurrentUser()!,
         chatId,
         type: 'text',
+        status: 'read',
       },
     ];
     this.messagesSubject.next(mockMessages);

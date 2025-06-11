@@ -1,20 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
-import { AuthService, User } from '../../services/auth.service';
+import { Contact, User } from '../../models';
+import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
 
-interface Contact extends User {
-  selected?: boolean;
-}
-
 @Component({
-    selector: 'app-new-chat',
-    imports: [CommonModule, FormsModule],
-    templateUrl: './new-chat.component.html',
-    styleUrls: ['./new-chat.component.scss']
+  selector: 'app-new-chat',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './new-chat.component.html',
+  styleUrls: ['./new-chat.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewChatComponent implements OnInit {
   contacts: Contact[] = [];
@@ -24,11 +28,11 @@ export class NewChatComponent implements OnInit {
   showGroupNameInput = false;
   currentUser$: Observable<User | null>;
 
-  constructor(
-    private authService: AuthService,
-    private chatService: ChatService,
-    private router: Router
-  ) {
+  private authService = inject(AuthService);
+  private chatService = inject(ChatService);
+  private router = inject(Router);
+
+  constructor() {
     this.currentUser$ = this.authService.currentUser$;
   }
 

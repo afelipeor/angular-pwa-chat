@@ -1,17 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
-import { User } from '../../models';
-import { AuthService, } from '../../services/auth.service';
-import { Chat, ChatService } from '../../services/chat.service';
+import { Chat, User } from '../../models';
+import { AuthService } from '../../services/auth.service';
+import { ChatService } from '../../services/chat.service';
 
 @Component({
-    selector: 'app-chat-list',
-    imports: [CommonModule, RouterModule],
-    templateUrl: './chat-list.component.html',
-    styleUrls: ['./chat-list.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush
+  selector: 'app-chat-list',
+  imports: [CommonModule, RouterModule],
+  standalone: true,
+  templateUrl: './chat-list.component.html',
+  styleUrls: ['./chat-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatListComponent implements OnInit {
   chats$: Observable<Chat[]>;

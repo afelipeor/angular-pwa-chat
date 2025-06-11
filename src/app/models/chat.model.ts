@@ -1,10 +1,14 @@
+import { Message } from './message.model';
+import { User } from './user.model';
+
 export interface Chat {
   id: string;
   name: string;
-  participants: string[];
+  participants: User[];
   isGroup: boolean;
   lastMessage?: Message;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   avatar?: string;
+  unreadCount: number;
 }
