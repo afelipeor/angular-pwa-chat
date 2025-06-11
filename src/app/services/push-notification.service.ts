@@ -35,6 +35,10 @@ export class PushNotificationService {
         throw error;
       });
   }
+  getVapidPublicKey(): string {
+    // Replace with your actual VAPID public key
+    return this.VAPID_PUBLIC_KEY;
+  }
 
   /**
    * Send subscription to server

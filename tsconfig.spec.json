@@ -7,11 +7,12 @@
       "node"
     ],
     "module": "commonjs",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "src/**/*.spec.ts",
-    "src/**/*.test.ts",
     "src/**/*.d.ts"
   ]
 }

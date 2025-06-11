@@ -23,6 +23,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'logout',
+    loadComponent: () =>
+      import('./components/logout/logout.component').then(
+        (m) => m.LogoutComponent
+      ),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

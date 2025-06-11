@@ -1,29 +1,11 @@
 <div class="chat-list-container">
   <!-- Header -->
   <div class="header">
-    @if (currentUser$ | async; as user) {
-    <div class="user-info">
-      <div class="user-avatar">
-        <span>{{ getAvatarInitials(user.name) }}</span>
-        <div
-          class="status-indicator"
-          [style.background-color]="getStatusColor(user.status)">
-        </div>
-      </div>
-
-      <div class="user-details">
-        <h2>{{ user.name }}</h2>
-        <span class="status">{{ user.status }}</span>
-      </div>
-    </div>
-    }
+    <app-header-menu></app-header-menu>
 
     <div class="header-actions">
       <button class="icon-button">
         <i class="material-icons">search</i>
-      </button>
-      <button class="icon-button">
-        <i class="material-icons">more_vert</i>
       </button>
     </div>
   </div>

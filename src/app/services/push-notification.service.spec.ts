@@ -1,4 +1,4 @@
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { SwPush } from '@angular/service-worker';
 import { PushNotificationService } from './push-notification.service';
@@ -14,8 +14,10 @@ describe('PushNotificationService', () => {
     } as jest.Mocked<Partial<SwPush>>;
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [{ provide: SwPush, useValue: swPushMock }],
+      providers: [
+        { provide: SwPush, useValue: swPushMock },
+        provideHttpClient(),
+      ],
     });
 
     service = TestBed.inject(PushNotificationService);
@@ -40,7 +42,7 @@ describe('PushNotificationService', () => {
       service.subscribeToNotifications();
 
       expect(mockSwPush.requestSubscription).toHaveBeenCalledWith({
-        serverPublicKey: service.VAPID_PUBLIC_KEY,
+        serverPublicKey: service.getVapidPublicKey(),
       });
 
       consoleSpy.mockRestore();

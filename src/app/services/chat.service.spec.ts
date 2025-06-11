@@ -3,8 +3,9 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Chat } from '../models';
 import { AuthService } from './auth.service';
-import { Chat, ChatService } from './chat.service';
+import { ChatService } from './chat.service';
 import { PushNotificationService } from './push-notification.service';
 
 describe('ChatService', () => {

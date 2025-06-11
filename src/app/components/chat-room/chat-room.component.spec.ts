@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { User } from '../../models';
+import { Message, User } from '../../models';
 import { AuthService } from '../../services/auth.service';
-import { ChatService, Message } from '../../services/chat.service';
+import { ChatService } from '../../services/chat.service';
 import { ChatRoomComponent } from './chat-room.component';
 
 describe('ChatRoomComponent', () => {
@@ -34,6 +34,7 @@ describe('ChatRoomComponent', () => {
       },
       chatId: '1',
       type: 'text',
+      status: 'sent', // Add a valid MessageStatus value
     },
     {
       id: '2',
@@ -42,6 +43,7 @@ describe('ChatRoomComponent', () => {
       sender: mockUser,
       chatId: '1',
       type: 'text',
+      status: 'sent', // Add a valid MessageStatus value
     },
   ];
 
@@ -126,6 +128,7 @@ describe('ChatRoomComponent', () => {
 
   it('should send message when send button is clicked', () => {
     component.newMessage = 'Test message';
+    component.chatId = '1';
 
     component.sendMessage();
 

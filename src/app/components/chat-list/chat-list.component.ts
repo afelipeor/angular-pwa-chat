@@ -10,10 +10,11 @@ import { Observable } from 'rxjs';
 import { Chat, User } from '../../models';
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
+import { HeaderMenuComponent } from '../header-menu/header-menu.component';
 
 @Component({
   selector: 'app-chat-list',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, HeaderMenuComponent],
   standalone: true,
   templateUrl: './chat-list.component.html',
   styleUrls: ['./chat-list.component.scss'],

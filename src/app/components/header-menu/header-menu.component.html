@@ -1,0 +1,74 @@
+<div class="header-menu" [class.menu-open]="isMenuOpen">
+  @if (currentUser$ | async; as user) {
+  <div class="user-info" (click)="toggleMenu()">
+    <div class="user-avatar">
+      <span>{{ getAvatarInitials(user.name) }}</span>
+      <div
+        class="status-indicator"
+        [style.background-color]="getStatusColor(user.status)">
+      </div>
+    </div>
+
+    <div class="user-details">
+      <h2>{{ user.name }}</h2>
+      <span class="status">{{ user.status }}</span>
+    </div>
+
+    <i class="material-icons menu-arrow">keyboard_arrow_down</i>
+  </div>
+
+  <!-- Dropdown Menu -->
+  @if (isMenuOpen) {
+  <div class="menu-overlay" (click)="closeMenu()"></div>
+  <div class="dropdown-menu">
+    <div class="menu-header">
+      <div class="user-avatar">
+        <span>{{ getAvatarInitials(user.name) }}</span>
+      </div>
+      <div class="user-info-details">
+        <h3>{{ user.name }}</h3>
+        <p>{{ user.email }}</p>
+      </div>
+    </div>
+
+    <div class="menu-divider"></div>
+
+    <div class="menu-items">
+      <button class="menu-item" (click)="closeMenu()">
+        <i class="material-icons">person</i>
+        <span>Profile</span>
+      </button>
+
+      <button class="menu-item" (click)="closeMenu()">
+        <i class="material-icons">settings</i>
+        <span>Settings</span>
+      </button>
+
+      <button class="menu-item" (click)="closeMenu()">
+        <i class="material-icons">help</i>
+        <span>Help</span>
+      </button>
+
+      <div class="menu-divider"></div>
+
+      <button class="menu-item logout-item" (click)="showLogout()">
+        <i class="material-icons">exit_to_app</i>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </div>
+  }
+  }
+</div>
+
+<!-- Logout Modal -->
+@if (showLogoutModal) {
+<div class="logout-modal-overlay" (click)="hideLogout()">
+  <div class="logout-modal-content" (click)="$event.stopPropagation()">
+    <button class="close-modal-btn" (click)="hideLogout()">
+      <i class="material-icons">close</i>
+    </button>
+    <app-logout (cancelled)="hideLogout()"></app-logout>
+  </div>
+</div>
+}
