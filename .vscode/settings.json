@@ -11,7 +11,7 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "[scss]": {
-        "editor.defaultFormatter": "stylelint.vscode-stylelint"
+        "editor.defaultFormatter": "sibiraj-s.vscode-scss-formatter"
     },
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
