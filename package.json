@@ -28,6 +28,7 @@
     "@angular/router": "^19.2.14",
     "@angular/service-worker": "^19.2.14",
     "angular-eslint": "^18.4.2",
+    "cypress": "^14.4.1",
     "rxjs": "~7.8.1",
     "tslib": "^2.4.0",
     "zone.js": "~0.15.0"
@@ -35,8 +36,9 @@
   "devDependencies": {
     "@angular-eslint/eslint-plugin": "^17.1.1",
     "@angular/build": "^19.2.14",
-    "@angular/cli": "^14.2.13",
+    "@angular/cli": "^20.0.2",
     "@angular/compiler-cli": "^19.2.14",
+    "@cypress/schematic": "^3.0.0",
     "@playwright/test": "^1.40.0",
     "@types/jest": "^29.5.5",
     "@types/node": "^18.15.0",

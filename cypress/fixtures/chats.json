@@ -1,0 +1,36 @@
+{
+  "chats": [
+    {
+      "id": 1,
+      "participants": ["user1", "user2"],
+      "messages": [
+        {
+          "sender": "user1",
+          "content": "Hello!",
+          "timestamp": "2023-10-01T10:00:00Z"
+        },
+        {
+          "sender": "user2",
+          "content": "Hi there!",
+          "timestamp": "2023-10-01T10:01:00Z"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "participants": ["user3", "user4"],
+      "messages": [
+        {
+          "sender": "user3",
+          "content": "How are you?",
+          "timestamp": "2023-10-01T11:00:00Z"
+        },
+        {
+          "sender": "user4",
+          "content": "I'm good, thanks!",
+          "timestamp": "2023-10-01T11:01:00Z"
+        }
+      ]
+    }
+  ]
+}
