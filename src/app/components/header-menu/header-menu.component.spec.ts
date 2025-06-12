@@ -764,9 +764,9 @@ describe('HeaderMenuComponent', () => {
     it('should not create multiple observables unnecessarily', () => {
       const initialObservable = component.currentUser$;
 
-      // Create new component instance
-      const newComponent = new HeaderMenuComponent();
-      newComponent['authService'] = mockAuthService;
+      // Create new component instance using TestBed to ensure DI context
+      const newFixture = TestBed.createComponent(HeaderMenuComponent);
+      const newComponent = newFixture.componentInstance;
 
       expect(newComponent.currentUser$).toBeDefined();
       expect(typeof newComponent.currentUser$.subscribe).toBe('function');

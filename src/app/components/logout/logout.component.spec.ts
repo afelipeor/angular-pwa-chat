@@ -312,7 +312,11 @@ describe('LogoutComponent', () => {
       const cancelButton =
         fixture.nativeElement.querySelector('.cancel-button');
 
-      expect(cancelButton.getAttribute('ng-reflect-ng-click')).not.toBeNull();
+      expect(cancelButton).not.toBeNull();
+      // Optionally, check that the button is clickable by simulating a click and spying on the method
+      jest.spyOn(component, 'cancel');
+      cancelButton.click();
+      expect(component.cancel).toHaveBeenCalled();
     });
   });
 

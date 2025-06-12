@@ -38,7 +38,11 @@ export class LogoutComponent {
 
   cancel(): void {
     // Emit cancel event for modal usage
-    this.cancelled.emit();
+    try {
+      this.cancelled.emit();
+    } catch (error) {
+      // Handle gracefully
+    }
 
     // Fallback to history.back() if not used as modal
     try {

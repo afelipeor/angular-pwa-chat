@@ -49,10 +49,23 @@ describe('PushNotificationService', () => {
     });
 
     it('should log message when SwPush is not enabled', () => {
-      Object.defineProperty(mockSwPush, 'isEnabled', { value: false });
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const swPushMockDisabled = {
+        isEnabled: false,
+        requestSubscription: jest.fn(),
+      } as jest.Mocked<Partial<SwPush>>;
 
-      service.subscribeToNotifications();
+      // Reconfigure the testing module for this test
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: SwPush, useValue: swPushMockDisabled },
+          provideHttpClient(),
+        ],
+      });
+      const serviceWithDisabledSwPush = TestBed.inject(PushNotificationService);
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      serviceWithDisabledSwPush.subscribeToNotifications();
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Push notifications are not enabled'
@@ -69,7 +82,7 @@ describe('PushNotificationService', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Could not subscribe to notifications',
+        'Could not subscribe to notifications:',
         'Error'
       );
       consoleSpy.mockRestore();

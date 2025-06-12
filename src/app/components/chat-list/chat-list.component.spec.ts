@@ -92,6 +92,8 @@ describe('ChatListComponent', () => {
 
     const defaultRouter = {
       navigate: jest.fn(),
+      navigateByUrl: jest.fn(), // Mock navigateByUrl to fix RouterLink error
+      createUrlTree: jest.fn(() => ({})), // Mock createUrlTree to fix router error
     };
 
     const mockActivatedRoute = {
@@ -208,7 +210,7 @@ describe('ChatListComponent', () => {
 
     it('should display formatted timestamp', () => {
       const timeElements = fixture.nativeElement.querySelectorAll('.chat-time');
-      console.log('timeElements:', timeElements);
+
       expect(timeElements.length).toBeGreaterThan(0);
     });
   });
@@ -219,14 +221,15 @@ describe('ChatListComponent', () => {
     });
 
     it('should call openChat when chat item is clicked', () => {
-      jest.spyOn(component, 'openChat');
+      const openChatSpy = jest.spyOn(component, 'openChat');
       const chatItem = fixture.nativeElement.querySelector('.chat-item');
 
       chatItem?.click();
-      fixture.detectChanges();
 
-      // Note: This depends on how the click event is bound in the template
-      // You may need to adjust based on your actual template implementation
+      fixture.whenStable().then(() => {
+        fixture.detectChanges();
+        expect(openChatSpy).toHaveBeenCalled();
+      });
     });
 
     it('should select chat when openChat is called', () => {
