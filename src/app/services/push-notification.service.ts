@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
+import { EMPTY, catchError } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +13,7 @@ export class PushNotificationService {
 
   private readonly swPush = inject(SwPush);
   private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl || 'http://localhost:3000/api';
 
   /**
    * Subscribe to push notifications
@@ -35,8 +38,8 @@ export class PushNotificationService {
         throw error;
       });
   }
+
   getVapidPublicKey(): string {
-    // Replace with your actual VAPID public key
     return this.VAPID_PUBLIC_KEY;
   }
 
@@ -45,18 +48,52 @@ export class PushNotificationService {
    * @param subscription - The push subscription object
    */
   private sendSubscriptionToServer(subscription: PushSubscription): void {
-    // In a real app, send this subscription to your backend
-    console.log('Subscription sent to server:', subscription);
+    const subscriptionData = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')!),
+        auth: this.arrayBufferToBase64(subscription.getKey('auth')!),
+      },
+    };
 
-    // Example implementation:
-    // this.http.post('/api/notifications/subscribe', subscription)
-    //   .pipe(
-    //     catchError((error) => {
-    //       console.error('Failed to send subscription to server:', error);
-    //       return EMPTY;
-    //     })
-    //   )
-    //   .subscribe();
+    // Get auth token from localStorage
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      console.warn('No auth token found, cannot subscribe to notifications');
+      return;
+    }
+
+    this.http
+      .post(
+        `${this.apiUrl}/notifications/subscribe`,
+        subscriptionData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Failed to send subscription to server:', error);
+          return EMPTY;
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('Subscription sent to server successfully:', response);
+        },
+      });
+  }
+
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   }
 
   /**

@@ -8,10 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SocketModule = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
 const jwt_1 = require("@nestjs/jwt");
 const chats_module_1 = require("../chats/chats.module");
 const messages_module_1 = require("../messages/messages.module");
+const notifications_module_1 = require("../notifications/notifications.module");
 const users_module_1 = require("../users/users.module");
 const socket_gateway_1 = require("./socket.gateway");
 let SocketModule = class SocketModule {
@@ -20,19 +20,17 @@ exports.SocketModule = SocketModule;
 exports.SocketModule = SocketModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            jwt_1.JwtModule.registerAsync({
-                imports: [config_1.ConfigModule],
-                useFactory: async (configService) => ({
-                    secret: configService.get('JWT_SECRET') || 'secretKey',
-                    signOptions: { expiresIn: '24h' },
-                }),
-                inject: [config_1.ConfigService],
+            jwt_1.JwtModule.register({
+                secret: process.env.JWT_SECRET || 'your-secret-key',
+                signOptions: { expiresIn: '24h' },
             }),
             users_module_1.UsersModule,
             chats_module_1.ChatsModule,
             messages_module_1.MessagesModule,
+            notifications_module_1.NotificationsModule,
         ],
         providers: [socket_gateway_1.SocketGateway],
+        exports: [socket_gateway_1.SocketGateway],
     })
 ], SocketModule);
 //# sourceMappingURL=socket.module.js.map

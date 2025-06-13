@@ -5,6 +5,9 @@ export type MessageDocument = Message & Document;
 
 @Schema({ timestamps: true })
 export class Message {
+  @Prop()
+  _id: string;
+
   @Prop({ required: true })
   content: string;
 
@@ -17,7 +20,7 @@ export class Message {
   @Prop({
     type: String,
     enum: ['text', 'image', 'file', 'audio', 'video'],
-    default: 'text'
+    default: 'text',
   })
   type: string;
 

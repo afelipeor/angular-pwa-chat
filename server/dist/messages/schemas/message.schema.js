@@ -16,6 +16,10 @@ let Message = class Message {
 };
 exports.Message = Message;
 __decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Message.prototype, "_id", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], Message.prototype, "content", void 0);
@@ -31,7 +35,7 @@ __decorate([
     (0, mongoose_1.Prop)({
         type: String,
         enum: ['text', 'image', 'file', 'audio', 'video'],
-        default: 'text'
+        default: 'text',
     }),
     __metadata("design:type", String)
 ], Message.prototype, "type", void 0);

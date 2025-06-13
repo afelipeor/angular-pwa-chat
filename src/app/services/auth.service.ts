@@ -12,7 +12,7 @@ export class AuthService {
   constructor() {
     // Mock user for demo purposes
     this.login({
-      id: '1',
+      _id: '1',
       name: 'John Doe',
       email: 'john.doe@example.com',
       status: 'online',
@@ -33,7 +33,16 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  getCurrentUserId(): string | null {
+    return this.currentUserSubject.value?._id ?? null;
+  }
+
   isLoggedIn(): boolean {
     return this.currentUserSubject.value !== null;
+  }
+
+  getToken(): string | null {
+    // Replace with your actual token retrieval logic
+    return localStorage.getItem('token');
   }
 }

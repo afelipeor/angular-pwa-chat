@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import { ChatsService } from '../chats/chats.service';
 import { CreateMessageDto } from '../messages/dto';
 import { MessagesService } from '../messages/messages.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 interface AuthenticatedSocket extends Socket {
     userId?: string;
@@ -14,9 +15,13 @@ export declare class SocketGateway implements OnGatewayConnection, OnGatewayDisc
     private usersService;
     private chatsService;
     private messagesService;
+    private notificationsService;
     server: Server;
     private connectedUsers;
-    constructor(jwtService: JwtService, usersService: UsersService, chatsService: ChatsService, messagesService: MessagesService);
+    private autoResponseEnabled;
+    private autoResponseDelay;
+    private autoResponseMessages;
+    constructor(jwtService: JwtService, usersService: UsersService, chatsService: ChatsService, messagesService: MessagesService, notificationsService: NotificationsService);
     handleConnection(client: AuthenticatedSocket): Promise<void>;
     handleDisconnect(client: AuthenticatedSocket): Promise<void>;
     handleMessage(createMessageDto: CreateMessageDto, client: AuthenticatedSocket): Promise<{
@@ -55,5 +60,20 @@ export declare class SocketGateway implements OnGatewayConnection, OnGatewayDisc
         success: boolean;
         error: any;
     }>;
+    private sendAutoResponse;
+    private getOrCreateBotUser;
+    private sendPushNotificationToChat;
+    handleToggleAutoResponse(data: {
+        enabled: boolean;
+    }, client: AuthenticatedSocket): {
+        success: boolean;
+        autoResponseEnabled: boolean;
+    };
+    handleSetAutoResponseDelay(data: {
+        delay: number;
+    }, client: AuthenticatedSocket): {
+        success: boolean;
+        autoResponseDelay: number;
+    };
 }
 export {};

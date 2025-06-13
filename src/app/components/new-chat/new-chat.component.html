@@ -37,7 +37,7 @@
   <!-- Selected Contacts Chips -->
   @if (selectedContacts.length > 0) {
   <div class="selected-contacts">
-    @for (contact of selectedContacts; track contact.id) {
+    @for (contact of selectedContacts; track contact._id) {
     <div class="selected-contact-chip">
       <div class="contact-avatar">
         <span>{{ getAvatarInitials(contact.name) }}</span>
@@ -74,7 +74,7 @@
       <span class="contact-count">{{ filteredContacts.length }}</span>
     </div>
 
-    @for (contact of filteredContacts; track contact.id) {
+    @for (contact of filteredContacts; track contact._id) {
     <div
       class="contact-item"
       (click)="toggleContactSelection(contact)"

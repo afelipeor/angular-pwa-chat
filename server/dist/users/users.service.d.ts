@@ -7,7 +7,7 @@ export declare class UsersService {
     create(createUserDto: CreateUserDto): Promise<User>;
     findAll(): Promise<User[]>;
     findOne(id: string): Promise<User>;
-    findByEmail(email: string): Promise<UserDocument>;
+    findByEmail(email: string): Promise<User>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<User>;
     updateStatus(id: string, status: string): Promise<User>;
     addDeviceToken(userId: string, token: string): Promise<void>;

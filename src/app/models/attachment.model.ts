@@ -1,7 +1,7 @@
 
 
 export interface Attachment {
-    id: string;
+    _id: string;
     fileName: string;
     fileSize: number;
     mimeType: string;

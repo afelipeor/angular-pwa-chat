@@ -19,14 +19,30 @@ const socket_io_1 = require("socket.io");
 const chats_service_1 = require("../chats/chats.service");
 const dto_1 = require("../messages/dto");
 const messages_service_1 = require("../messages/messages.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 const users_service_1 = require("../users/users.service");
 let SocketGateway = class SocketGateway {
-    constructor(jwtService, usersService, chatsService, messagesService) {
+    constructor(jwtService, usersService, chatsService, messagesService, notificationsService) {
         this.jwtService = jwtService;
         this.usersService = usersService;
         this.chatsService = chatsService;
         this.messagesService = messagesService;
+        this.notificationsService = notificationsService;
         this.connectedUsers = new Map();
+        this.autoResponseEnabled = true;
+        this.autoResponseDelay = 2000;
+        this.autoResponseMessages = [
+            'Thanks for your message! 🙂',
+            "That's interesting! Tell me more.",
+            "I'm an auto-responder for testing notifications 🤖",
+            'How are you doing today?',
+            "Great point! I hadn't thought of that.",
+            'Thanks for sharing that with me!',
+            'What do you think about that?',
+            'That sounds awesome! 🎉',
+            "I'm here to help test your notifications!",
+            "Hope you're having a great day! ☀️",
+        ];
     }
     async handleConnection(client) {
         try {
@@ -79,6 +95,12 @@ let SocketGateway = class SocketGateway {
             this.server
                 .to(`chat-${createMessageDto.chatId}`)
                 .emit('newMessage', message);
+            await this.sendPushNotificationToChat(createMessageDto.chatId, client.userId, message);
+            if (this.autoResponseEnabled) {
+                setTimeout(async () => {
+                    await this.sendAutoResponse(createMessageDto.chatId, client.userId);
+                }, this.autoResponseDelay);
+            }
             return { success: true, message };
         }
         catch (error) {
@@ -127,6 +149,64 @@ let SocketGateway = class SocketGateway {
             return { success: false, error: error.message };
         }
     }
+    async sendAutoResponse(chatId, originalSenderId) {
+        try {
+            const randomMessage = this.autoResponseMessages[Math.floor(Math.random() * this.autoResponseMessages.length)];
+            const autoResponseDto = {
+                chatId,
+                content: randomMessage,
+                type: 'text',
+            };
+            const botUser = await this.getOrCreateBotUser();
+            const autoMessage = await this.messagesService.create(autoResponseDto, botUser._id.toString());
+            this.server.to(`chat-${chatId}`).emit('newMessage', autoMessage);
+            await this.notificationsService.sendNotificationToUser(originalSenderId, 'New message from ChatBot', randomMessage, { chatId, messageId: autoMessage._id });
+            console.log(`Auto-response sent to chat ${chatId}: ${randomMessage}`);
+        }
+        catch (error) {
+            console.error('Error sending auto-response:', error);
+        }
+    }
+    async getOrCreateBotUser() {
+        try {
+            const existingBot = await this.usersService.findByEmail('chatbot@angular-chat.com');
+            if (existingBot) {
+                return existingBot;
+            }
+        }
+        catch (error) {
+        }
+        return await this.usersService.create({
+            name: 'ChatBot',
+            email: 'chatbot@angular-chat.com',
+            password: 'bot-password-not-used',
+            avatar: '🤖',
+        });
+    }
+    async sendPushNotificationToChat(chatId, senderId, message) {
+        try {
+            const chat = await this.chatsService.findOne(chatId, senderId);
+            const sender = await this.usersService.findOne(senderId);
+            const otherParticipants = chat.participants.filter((participant) => participant._id.toString() !== senderId);
+            const notificationPromises = otherParticipants.map(async (participant) => {
+                const title = chat.isGroup ? `${chat.name}` : `${sender.name}`;
+                const body = message.content;
+                return this.notificationsService.sendNotificationToUser(participant._id.toString(), title, body, { chatId, messageId: message._id });
+            });
+            await Promise.allSettled(notificationPromises);
+        }
+        catch (error) {
+            console.error('Error sending push notifications:', error);
+        }
+    }
+    handleToggleAutoResponse(data, client) {
+        this.autoResponseEnabled = data.enabled;
+        return { success: true, autoResponseEnabled: this.autoResponseEnabled };
+    }
+    handleSetAutoResponseDelay(data, client) {
+        this.autoResponseDelay = Math.max(1000, Math.min(10000, data.delay));
+        return { success: true, autoResponseDelay: this.autoResponseDelay };
+    }
 };
 exports.SocketGateway = SocketGateway;
 __decorate([
@@ -173,6 +253,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], SocketGateway.prototype, "handleMarkMessageRead", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('toggleAutoResponse'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], SocketGateway.prototype, "handleToggleAutoResponse", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('setAutoResponseDelay'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], SocketGateway.prototype, "handleSetAutoResponseDelay", null);
 exports.SocketGateway = SocketGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: {
@@ -184,6 +280,7 @@ exports.SocketGateway = SocketGateway = __decorate([
     __metadata("design:paramtypes", [jwt_1.JwtService,
         users_service_1.UsersService,
         chats_service_1.ChatsService,
-        messages_service_1.MessagesService])
+        messages_service_1.MessagesService,
+        notifications_service_1.NotificationsService])
 ], SocketGateway);
 //# sourceMappingURL=socket.gateway.js.map

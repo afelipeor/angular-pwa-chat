@@ -56,7 +56,7 @@ export class NewChatComponent implements OnInit {
 
   // Public methods
   toggleContactSelection(contact: Contact): void {
-    const index = this.selectedContacts.findIndex((c) => c.id === contact.id);
+    const index = this.selectedContacts.findIndex((c) => c._id === contact._id);
 
     if (index > -1) {
       this.selectedContacts.splice(index, 1);
@@ -70,7 +70,7 @@ export class NewChatComponent implements OnInit {
   }
 
   removeSelectedContact(contact: Contact): void {
-    const index = this.selectedContacts.findIndex((c) => c.id === contact.id);
+    const index = this.selectedContacts.findIndex((c) => c._id === contact._id);
     if (index > -1) {
       this.selectedContacts.splice(index, 1);
       contact.selected = false;
@@ -94,7 +94,7 @@ export class NewChatComponent implements OnInit {
       chatName
     );
 
-    this.router.navigate(['/chat', newChat.id]);
+    this.router.navigate(['/chat', newChat._id]);
   }
 
   goBack(): void {
@@ -123,57 +123,57 @@ export class NewChatComponent implements OnInit {
   }
 
   isContactSelected(contact: Contact): boolean {
-    return this.selectedContacts.some((c) => c.id === contact.id);
+    return this.selectedContacts.some((c) => c._id === contact._id);
   }
 
   trackByContactId(_index: number, contact: Contact): string {
-    return contact.id;
+    return contact._id;
   }
 
   trackBySelectedContactId(_index: number, contact: Contact): string {
-    return contact.id;
+    return contact._id;
   }
 
   // Private methods
   private loadContacts(): void {
     this.contacts = [
       {
-        id: '2',
+        _id: '2',
         name: 'Alice Johnson',
         email: 'alice@example.com',
         status: 'online',
         avatar: '',
       },
       {
-        id: '3',
+        _id: '3',
         name: 'Bob Smith',
         email: 'bob@example.com',
         status: 'away',
         avatar: '',
       },
       {
-        id: '4',
+        _id: '4',
         name: 'Carol Davis',
         email: 'carol@example.com',
         status: 'online',
         avatar: '',
       },
       {
-        id: '5',
+        _id: '5',
         name: 'David Wilson',
         email: 'david@example.com',
         status: 'offline',
         avatar: '',
       },
       {
-        id: '6',
+        _id: '6',
         name: 'Emma Brown',
         email: 'emma@example.com',
         status: 'online',
         avatar: '',
       },
       {
-        id: '7',
+        _id: '7',
         name: 'Frank Miller',
         email: 'frank@example.com',
         status: 'away',

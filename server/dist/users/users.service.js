@@ -47,7 +47,11 @@ let UsersService = class UsersService {
         return user;
     }
     async findByEmail(email) {
-        return this.userModel.findOne({ email }).exec();
+        const user = await this.userModel.findOne({ email }).exec();
+        if (!user) {
+            throw new common_1.NotFoundException(`User with email ${email} not found`);
+        }
+        return user;
     }
     async update(id, updateUserDto) {
         if (updateUserDto.password) {

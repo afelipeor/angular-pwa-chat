@@ -2,7 +2,7 @@ import { Message } from './message.model';
 import { User } from './user.model';
 
 export interface Chat {
-  id: string;
+  _id: string;
   name: string;
   participants: User[];
   isGroup: boolean;

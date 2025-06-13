@@ -11,3 +11,6 @@ export * from './paginated-response.model';
 export * from './push-subscription-data.model';
 export * from './register-data.model';
 export * from './user.model';
+export * from './typing-status.model';
+export * from './messages-response.model';
+export * from './message-search-result.model';

@@ -1,4 +1,4 @@
-<div class="chat-room-container">
+<div class="chat-room">
   <!-- Header -->
   <div class="chat-header">
     <button
@@ -28,11 +28,14 @@
     </div>
   </div>
 
+  <!-- Auto-Response Toggle -->
+  <app-auto-response-toggle></app-auto-response-toggle>
+
   <!-- Messages -->
   <div
     class="messages-container"
     #messagesContainer>
-    @for (message of messages$ | async; track message.id) {
+    @for (message of messages; track message._id) {
     <div
       class="message"
       [class.own-message]="isOwnMessage(message)">
@@ -47,9 +50,11 @@
           {{ message.content }}
         </div>
 
-        <div class="message-time">
+        @if(message.timestamp){
+          <div class="message-time">
           {{ getMessageTime(message.timestamp) }}
         </div>
+      }
       </div>
     </div>
     } @empty {

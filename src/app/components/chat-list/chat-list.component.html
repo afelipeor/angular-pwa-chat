@@ -12,10 +12,10 @@
 
   <!-- Chat List -->
   <div class="chat-list">
-    @for (chat of chats$ | async; track chat.id) {
+    @for (chat of chats$ | async; track chat._id) {
     <div
       class="chat-item"
-      [routerLink]="['/chat', chat.id]"
+      [routerLink]="['/chat', chat._id]"
       (click)="openChat(chat)">
       <div class="chat-avatar">
         <span>{{ getAvatarInitials(chat.name) }}</span>
