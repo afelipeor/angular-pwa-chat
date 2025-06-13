@@ -1,8 +1,8 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
-import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -54,7 +54,9 @@ describe('AuthService', () => {
   describe('validateUser', () => {
     it('should validate user with correct credentials', async () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser as any);
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as any);
+      jest
+        .spyOn(bcrypt, 'compare')
+        .mockImplementation(() => Promise.resolve(true));
 
       const result = await service.validateUser('john@example.com', 'password');
 
@@ -68,9 +70,14 @@ describe('AuthService', () => {
 
     it('should return null for invalid credentials', async () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser as any);
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false as any);
+      jest
+        .spyOn(bcrypt, 'compare')
+        .mockImplementation(() => Promise.resolve(false));
 
-      const result = await service.validateUser('john@example.com', 'wrongpassword');
+      const result = await service.validateUser(
+        'john@example.com',
+        'wrongpassword'
+      );
 
       expect(result).toBeNull();
     });
@@ -78,7 +85,10 @@ describe('AuthService', () => {
     it('should return null for non-existent user', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
 
-      const result = await service.validateUser('nonexistent@example.com', 'password');
+      const result = await service.validateUser(
+        'nonexistent@example.com',
+        'password'
+      );
 
       expect(result).toBeNull();
     });
@@ -98,7 +108,10 @@ describe('AuthService', () => {
 
       const result = await service.login(user);
 
-      expect(mockUsersService.updateStatus).toHaveBeenCalledWith(user._id, 'online');
+      expect(mockUsersService.updateStatus).toHaveBeenCalledWith(
+        user._id,
+        'online'
+      );
       expect(mockJwtService.sign).toHaveBeenCalledWith({
         email: user.email,
         sub: user._id,
@@ -154,7 +167,10 @@ describe('AuthService', () => {
 
       const result = await service.logout(userId);
 
-      expect(mockUsersService.updateStatus).toHaveBeenCalledWith(userId, 'offline');
+      expect(mockUsersService.updateStatus).toHaveBeenCalledWith(
+        userId,
+        'offline'
+      );
       expect(result).toEqual({ message: 'Logged out successfully' });
     });
   });

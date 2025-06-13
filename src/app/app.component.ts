@@ -11,6 +11,7 @@ import { PushNotificationService } from './services/push-notification.service';
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
   imports: [CommonModule, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],

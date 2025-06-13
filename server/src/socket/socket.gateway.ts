@@ -1,14 +1,13 @@
 import { JwtService } from '@nestjs/jwt';
-import
-  {
-    ConnectedSocket,
-    MessageBody,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
-    SubscribeMessage,
-    WebSocketGateway,
-    WebSocketServer,
-  } from '@nestjs/websockets';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatsService } from '../chats/chats.service';
 import { CreateMessageDto } from '../messages/dto';
@@ -37,12 +36,13 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private jwtService: JwtService,
     private usersService: UsersService,
     private chatsService: ChatsService,
-    private messagesService: MessagesService,
+    private messagesService: MessagesService
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      const token = client.handshake.auth?.token ||
+      const token =
+        client.handshake.auth?.token ||
         client.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
@@ -63,7 +63,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Join user's chat rooms
       const userChats = await this.chatsService.findAll(payload.sub);
-      userChats.forEach(chat => {
+      userChats.forEach((chat) => {
         client.join(`chat-${chat._id}`);
       });
 
@@ -105,16 +105,18 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @MessageBody() createMessageDto: CreateMessageDto,
-    @ConnectedSocket() client: AuthenticatedSocket,
+    @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
       const message = await this.messagesService.create(
         createMessageDto,
-        client.userId,
+        client.userId
       );
 
       // Emit message to all participants in the chat
-      this.server.to(`chat-${createMessageDto.chatId}`).emit('newMessage', message);
+      this.server
+        .to(`chat-${createMessageDto.chatId}`)
+        .emit('newMessage', message);
 
       return { success: true, message };
     } catch (error) {
@@ -126,7 +128,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('joinChat')
   async handleJoinChat(
     @MessageBody() data: { chatId: string },
-    @ConnectedSocket() client: AuthenticatedSocket,
+    @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
       // Verify user can access this chat
@@ -135,7 +137,10 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(`chat-${data.chatId}`);
 
       // Mark messages as read when joining chat
-      await this.messagesService.markChatMessagesAsRead(data.chatId, client.userId);
+      await this.messagesService.markChatMessagesAsRead(
+        data.chatId,
+        client.userId
+      );
 
       return { success: true };
     } catch (error) {
@@ -147,7 +152,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leaveChat')
   async handleLeaveChat(
     @MessageBody() data: { chatId: string },
-    @ConnectedSocket() client: AuthenticatedSocket,
+    @ConnectedSocket() client: AuthenticatedSocket
   ) {
     client.leave(`chat-${data.chatId}`);
     return { success: true };
@@ -156,7 +161,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('typing')
   async handleTyping(
     @MessageBody() data: { chatId: string; isTyping: boolean },
-    @ConnectedSocket() client: AuthenticatedSocket,
+    @ConnectedSocket() client: AuthenticatedSocket
   ) {
     client.to(`chat-${data.chatId}`).emit('userTyping', {
       userId: client.userId,
@@ -168,12 +173,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('markMessageRead')
   async handleMarkMessageRead(
     @MessageBody() data: { messageId: string },
-    @ConnectedSocket() client: AuthenticatedSocket,
+    @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
       const message = await this.messagesService.markAsRead(
         data.messageId,
-        client.userId,
+        client.userId
       );
 
       // Notify sender that message was read
