@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1",
+    "content": "Hello everyone!",
+    "sender": {
+      "id": "1",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "avatar": "https://ui-avatars.com/api/?name=John+Doe"
+    },
+    "chatId": "1",
+    "type": "text",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "readBy": ["1"]
+  },
+  {
+    "id": "2",
+    "content": "How is everyone doing?",
+    "sender": {
+      "id": "2",
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "avatar": "https://ui-avatars.com/api/?name=Jane+Smith"
+    },
+    "chatId": "1",
+    "type": "text",
+    "timestamp": "2024-01-15T10:32:00Z",
+    "readBy": ["1", "2"]
+  },
+  {
+    "id": "3",
+    "content": "Great! Working on the new features.",
+    "sender": {
+      "id": "1",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "avatar": "https://ui-avatars.com/api/?name=John+Doe"
+    },
+    "chatId": "1",
+    "type": "text",
+    "timestamp": "2024-01-15T10:35:00Z",
+    "readBy": ["1"]
+  }
+]

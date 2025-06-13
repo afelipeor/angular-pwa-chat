@@ -25,7 +25,9 @@
     "install:server": "cd server && npm install",
     "install:all": "npm install && npm run install:server",
     "dev": "npm start",
-    "serve:ssr:angular-pwa-app": "node dist/angular-pwa-app/server/server.mjs"
+    "serve:ssr:angular-pwa-app": "node dist/angular-pwa-app/server/server.mjs",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "private": true,
   "dependencies": {
@@ -47,10 +49,14 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.0.0",
+    "@angular-eslint/schematics": "^20.0.0",
     "@angular/cli": "^17.0.0",
     "@angular/compiler-cli": "^17.0.0",
+    "@cypress/schematic": "^3.0.0",
     "@types/node": "^18.18.0",
     "concurrently": "^8.2.0",
+    "cypress": "^13.0.0",
+    "cypress-real-events": "^1.11.0",
     "typescript": "~5.2.0"
   }
 }

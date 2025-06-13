@@ -1,0 +1,19 @@
+{
+  "currentUser": {
+    "id": "1",
+    "name": "Test User",
+    "email": "test@example.com",
+    "avatar": "https://ui-avatars.com/api/?name=Test+User",
+    "status": "online",
+    "lastSeen": "2024-01-15T10:30:00Z",
+    "settings": {
+      "notifications": true,
+      "soundEnabled": true,
+      "theme": "light"
+    }
+  },
+  "updateProfile": {
+    "name": "Updated Test User",
+    "avatar": "https://ui-avatars.com/api/?name=Updated+Test+User"
+  }
+}

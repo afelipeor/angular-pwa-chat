@@ -1,14 +1,19 @@
 {
-  "users": [
-    {
-      "username": "validUser",
-      "password": "validPassword123",
-      "email": "validuser@example.com"
-    },
-    {
-      "username": "invalidUser",
-      "password": "short",
-      "email": "invaliduser@example"
-    }
-  ]
+  "validUser": {
+    "id": "1",
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "password123",
+    "status": "online"
+  },
+  "invalidUser": {
+    "name": "Invalid User",
+    "email": "invalid@example.com",
+    "password": "wrongpassword"
+  },
+  "newUser": {
+    "name": "New User",
+    "email": "newuser@example.com",
+    "password": "newpassword123"
+  }
 }

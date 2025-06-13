@@ -1,0 +1,28 @@
+{
+  "id": "new-chat-123",
+  "name": "New Test Chat",
+  "participants": [
+    {
+      "id": "1",
+      "name": "Test User",
+      "email": "test@example.com",
+      "status": "online",
+      "avatar": "https://ui-avatars.com/api/?name=Test+User"
+    },
+    {
+      "id": "2",
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "status": "online",
+      "avatar": "https://ui-avatars.com/api/?name=Jane+Smith"
+    }
+  ],
+  "lastMessage": null,
+  "unreadCount": 0,
+  "isGroup": true,
+  "createdAt": "2024-01-15T12:00:00Z",
+  "createdBy": {
+    "id": "1",
+    "name": "Test User"
+  }
+}

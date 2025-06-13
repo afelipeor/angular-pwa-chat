@@ -1,0 +1,30 @@
+{
+  "loginSuccess": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "1",
+      "name": "Test User",
+      "email": "test@example.com",
+      "status": "online"
+    }
+  },
+  "loginError": {
+    "statusCode": 401,
+    "message": "Invalid credentials",
+    "error": "Unauthorized"
+  },
+  "registerSuccess": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "2",
+      "name": "New User",
+      "email": "newuser@example.com",
+      "status": "online"
+    }
+  },
+  "serverError": {
+    "statusCode": 500,
+    "message": "Internal server error",
+    "error": "Internal Server Error"
+  }
+}

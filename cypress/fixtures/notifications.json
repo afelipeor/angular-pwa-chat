@@ -1,0 +1,15 @@
+{
+  "pushSubscription": {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint",
+    "keys": {
+      "p256dh": "test-p256dh-key",
+      "auth": "test-auth-key"
+    }
+  },
+  "notificationPayload": {
+    "title": "New Message",
+    "body": "You have a new message from John Doe",
+    "icon": "/assets/icons/icon-192x192.png",
+    "badge": "/assets/icons/icon-72x72.png"
+  }
+}
