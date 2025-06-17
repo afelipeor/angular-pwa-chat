@@ -1,7 +1,5 @@
-export interface RegisterData {
-  _id: string;
-  name: string;
-  email: string;
+import { User } from './user.model';
+
+export interface RegisterData extends User {
   password: string;
-  confirmPassword: string;
 }

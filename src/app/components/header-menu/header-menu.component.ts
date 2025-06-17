@@ -61,7 +61,7 @@ export class HeaderMenuComponent {
       .toUpperCase();
   }
 
-  getStatusColor(status: string): string {
+  getStatusColor(status?: string): string {
     if (!status) return '#9e9e9e';
 
     switch (status.toLowerCase()) {

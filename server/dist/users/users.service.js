@@ -24,7 +24,7 @@ let UsersService = class UsersService {
     }
     async create(createUserDto) {
         const existingUser = await this.userModel.findOne({
-            email: createUserDto.email
+            email: createUserDto.email,
         });
         if (existingUser) {
             throw new common_1.ConflictException('User with this email already exists');
@@ -34,7 +34,11 @@ let UsersService = class UsersService {
             ...createUserDto,
             password: hashedPassword,
         });
-        return createdUser.save();
+        const savedUser = await createdUser.save();
+        if (!savedUser._id) {
+            throw new Error('User creation failed: No ID generated');
+        }
+        return savedUser;
     }
     async findAll() {
         return this.userModel.find().select('-password -deviceTokens').exec();
@@ -81,10 +85,14 @@ let UsersService = class UsersService {
         return updatedUser;
     }
     async addDeviceToken(userId, token) {
-        await this.userModel.findByIdAndUpdate(userId, { $addToSet: { deviceTokens: token } });
+        await this.userModel.findByIdAndUpdate(userId, {
+            $addToSet: { deviceTokens: token },
+        });
     }
     async removeDeviceToken(userId, token) {
-        await this.userModel.findByIdAndUpdate(userId, { $pull: { deviceTokens: token } });
+        await this.userModel.findByIdAndUpdate(userId, {
+            $pull: { deviceTokens: token },
+        });
     }
     async remove(id) {
         const result = await this.userModel.findByIdAndDelete(id);

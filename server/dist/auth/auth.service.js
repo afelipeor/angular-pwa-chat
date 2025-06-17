@@ -20,20 +20,34 @@ let AuthService = class AuthService {
         this.jwtService = jwtService;
     }
     async validateUser(email, password) {
-        const user = await this.usersService.findByEmail(email);
-        if (user && (await bcrypt.compare(password, user.password))) {
-            const { password: _, ...result } = user;
-            return result;
+        try {
+            const user = await this.usersService.findByEmail(email);
+            if (user && (await bcrypt.compare(password, user.password))) {
+                const userObject = user.toObject();
+                const { password: _, ...result } = userObject;
+                return result;
+            }
+            return null;
         }
-        return null;
+        catch (error) {
+            if (error.message.includes('not found')) {
+                return null;
+            }
+            throw error;
+        }
     }
     async login(user) {
-        const payload = { email: user.email, sub: user._id };
-        await this.usersService.updateStatus(user._id, 'online');
+        const userId = user._id || user.id;
+        if (!userId) {
+            console.error('Login failed: User object is missing ID', user);
+            throw new Error('User ID is missing');
+        }
+        const payload = { email: user.email, sub: userId.toString() };
+        await this.usersService.updateStatus(userId.toString(), 'online');
         return {
             access_token: this.jwtService.sign(payload),
             user: {
-                id: user._id,
+                id: userId.toString(),
                 name: user.name,
                 email: user.email,
                 status: 'online',
@@ -43,7 +57,11 @@ let AuthService = class AuthService {
     }
     async register(createUserDto) {
         const user = await this.usersService.create(createUserDto);
-        const { password: _, ...result } = user;
+        const userObject = user.toObject();
+        const { password: _, ...result } = userObject;
+        if (!result._id) {
+            throw new Error('User creation failed: ID is missing');
+        }
         return this.login(result);
     }
     async logout(userId) {

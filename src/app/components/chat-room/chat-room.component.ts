@@ -11,12 +11,16 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Observable, of, Subject, takeUntil } from 'rxjs';
+import { MessagesResponse } from '../../models';
 import { Chat } from '../../models/chat.model';
 import { Message } from '../../models/message.model';
 import { User } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
-import { MessagesService } from '../../services/messages.service';
+import {
+  CreateMessageDto,
+  MessagesService,
+} from '../../services/messages.service';
 import { SocketService } from '../../services/socket.service';
 import { AutoResponseToggleComponent } from '../auto-response-toggle/auto-response-toggle.component';
 
@@ -135,25 +139,51 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       .getMessages(this.chatId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response: any) => {
-          // Adjust according to actual response structure, e.g., response.messages
-          this.messages = (response.messages ?? []).reverse(); // Reverse to show oldest first
+        next: (response: MessagesResponse | Message[]) => {
+          // Handle both array response and MessagesResponse object
+          let messages: Message[] = [];
+
+          if (Array.isArray(response)) {
+            messages = response;
+          } else if (
+            response &&
+            Array.isArray((response as MessagesResponse).messages)
+          ) {
+            messages = (response as MessagesResponse).messages;
+          }
+
+          this.messages = messages; // Show messages in the order received (oldest first)
         },
-        error: (error: Error) => {
+        error: (error: any) => {
           console.error('Error loading messages:', error);
+          // Handle specific error cases
+          if (error?.message && error.message.includes('Unauthorized')) {
+            this.router.navigate(['/login']);
+          }
         },
       });
   }
 
   sendMessage(): void {
     if (this.newMessage.trim()) {
-      const messageData = {
+      const messageData: CreateMessageDto = {
         chatId: this.chatId,
         content: this.newMessage.trim(),
         type: 'text',
       };
 
-      this.socketService.emit('sendMessage', messageData);
+      this.messagesService
+        .sendMessage(messageData)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (message) => {
+            console.log('Message sent successfully:', message);
+          },
+          error: (error) => {
+            console.error('Error sending message:', error);
+          },
+        });
+
       this.newMessage = '';
     }
   }
@@ -178,7 +208,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   isOwnMessage(message: Message): boolean {
     return (
-      this.authService.getCurrentUserId() ===
+      this.authService.getCurrentUser()?._id ===
       ((message.sender as any)._id || message.sender)
     );
   }

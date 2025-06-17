@@ -12,24 +12,40 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const { password: _, ...result } = user;
-      return result;
+    try {
+      const user = await this.usersService.findByEmail(email);
+      if (user && (await bcrypt.compare(password, user.password))) {
+        const userObject = user.toObject();
+        const { password: _, ...result } = userObject;
+        return result;
+      }
+      return null;
+    } catch (error) {
+      // If user not found, return null instead of throwing
+      if (error.message.includes('not found')) {
+        return null;
+      }
+      throw error;
     }
-    return null;
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user._id };
+    // Ensure we have a proper user ID - check both _id and id fields
+    const userId = user._id || user.id;
+    if (!userId) {
+      console.error('Login failed: User object is missing ID', user);
+      throw new Error('User ID is missing');
+    }
 
-    // Update user status to online
-    await this.usersService.updateStatus(user._id, 'online');
+    const payload = { email: user.email, sub: userId.toString() };
+
+    // Update user status to online - convert ObjectId to string
+    await this.usersService.updateStatus(userId.toString(), 'online');
 
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user._id,
+        id: userId.toString(),
         name: user.name,
         email: user.email,
         status: 'online',
@@ -40,7 +56,15 @@ export class AuthService {
 
   async register(createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
-    const { password: _, ...result } = user;
+    // Convert mongoose document to plain object to remove password
+    const userObject = user.toObject();
+    const { password: _, ...result } = userObject;
+
+    // Ensure _id is present and properly formatted
+    if (!result._id) {
+      throw new Error('User creation failed: ID is missing');
+    }
+
     return this.login(result);
   }
 

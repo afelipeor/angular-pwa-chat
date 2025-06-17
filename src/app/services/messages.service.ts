@@ -4,17 +4,37 @@ import { BehaviorSubject, Observable, Subject, throwError } from 'rxjs';
 import { catchError, retry, tap } from 'rxjs/operators';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
-import {
-  Message,
-  MessageSearchResult,
-  MessagesResponse,
-  MessageStatus,
-  MessageType,
-  MessageTypeEnum,
-  TypingStatus,
-  User,
-} from '../models';
+import { Message, MessageType, User } from '../models';
+import { MessagesResponse } from '../models/messages-response.model';
 import { AuthService } from './auth.service';
+
+export interface CreateMessageDto {
+  chatId: string;
+  content: string;
+  type?: 'text' | 'image' | 'file' | 'audio' | 'video';
+  replyToId?: string;
+  attachments?: File[];
+}
+
+export interface MessageStatus {
+  messageId: string;
+  status: 'sent' | 'delivered' | 'read';
+  timestamp: Date;
+  userId?: string;
+}
+
+export interface TypingStatus {
+  chatId: string;
+  userId: string;
+  username: string;
+  isTyping: boolean;
+}
+
+export interface MessageSearchResult {
+  messages: Message[];
+  totalCount: number;
+  highlights: { [messageId: string]: string[] };
+}
 
 @Injectable({
   providedIn: 'root',
@@ -48,7 +68,63 @@ export class MessagesService {
     this.initializeSocketConnection();
   }
 
-  // Public Methods
+  private initializeSocketConnection(): void {
+    this.authService.currentUser$.subscribe((user) => {
+      if (user && !this.socket) {
+        const token = this.authService.getToken();
+        if (token) {
+          this.socket = io(environment.socketUrl || 'http://localhost:3000', {
+            auth: {
+              token: token,
+            },
+            transports: ['websocket'],
+          });
+
+          this.setupSocketListeners();
+        }
+      } else if (!user && this.socket) {
+        this.disconnectSocket();
+      }
+    });
+  }
+
+  private setupSocketListeners(): void {
+    if (!this.socket) return;
+
+    this.socket.on('connect', () => {
+      console.log('Connected to message socket');
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('Disconnected from message socket');
+    });
+
+    this.socket.on('newMessage', (message: Message) => {
+      this.handleNewMessage(message);
+    });
+
+    this.socket.on('messageStatus', (status: MessageStatus) => {
+      this.handleMessageStatus(status);
+    });
+
+    this.socket.on('userTyping', (data: TypingStatus) => {
+      this.handleTypingStatus(data);
+    });
+
+    this.socket.on('messageDeleted', (messageId: string) => {
+      this.handleMessageDeleted(messageId);
+    });
+
+    this.socket.on('messageUpdated', (message: Message) => {
+      this.handleMessageUpdated(message);
+    });
+
+    this.socket.on('error', (error: any) => {
+      console.error('Socket error:', error);
+    });
+  }
+
+  // Public Methods - All HTTP requests will now use the interceptor
 
   /**
    * Get messages for a specific chat
@@ -57,7 +133,12 @@ export class MessagesService {
     chatId: string,
     limit: number = 50,
     cursor?: string
-  ): Observable<MessagesResponse> {
+  ): Observable<MessagesResponse | Message[]> {
+    // Authentication is now handled by the interceptor
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     let params = new HttpParams().set('limit', limit.toString());
 
     if (cursor) {
@@ -65,14 +146,24 @@ export class MessagesService {
     }
 
     return this.http
-      .get<MessagesResponse>(`${this.apiUrl}/chat/${chatId}`, { params })
+      .get<MessagesResponse | Message[]>(`${this.apiUrl}/chat/${chatId}`, {
+        params,
+      })
       .pipe(
         tap((response) => {
+          let messages: Message[] = [];
+
+          if (Array.isArray(response)) {
+            messages = response;
+          } else if (response && (response as MessagesResponse).messages) {
+            messages = (response as MessagesResponse).messages;
+          }
+
           // Update cache
           const existingMessages = this.messageCache.get(chatId) || [];
           const allMessages = cursor
-            ? [...existingMessages, ...response.messages]
-            : response.messages;
+            ? [...existingMessages, ...messages]
+            : messages;
           this.messageCache.set(chatId, allMessages);
           this.messagesSubject.next(allMessages);
         }),
@@ -83,19 +174,24 @@ export class MessagesService {
   /**
    * Send a new message
    */
-  sendMessage(messageData: Message): Observable<Message> {
+  sendMessage(messageData: CreateMessageDto): Observable<Message> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     // Create optimistic message
     const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const currentUser = this.authService.getCurrentUser();
+
     const optimisticMessage: Message = {
       _id: tempId,
       chatId: messageData.chatId,
       content: messageData.content,
-      type: (messageData.type as MessageType) || MessageTypeEnum.text,
-      sender: {} as User, // Will be set by current user
+      type: (messageData.type as MessageType) || 'text',
+      sender: currentUser || ({} as User),
       timestamp: new Date(),
       status: 'sending',
       readBy: [],
-      replyTo: undefined,
       attachments: [],
     };
 
@@ -108,24 +204,19 @@ export class MessagesService {
     this.messageCache.set(messageData.chatId, chatMessages);
     this.messagesSubject.next(chatMessages);
 
-    // Prepare form data for file uploads
+    // Prepare form data
     const formData = new FormData();
     formData.append('chatId', messageData.chatId);
     formData.append('content', messageData.content);
     formData.append('type', messageData.type || 'text');
-    formData.append('tempId', tempId);
 
-    if (messageData.replyTo) {
-      formData.append('replyToId', messageData.replyTo);
+    if (messageData.replyToId) {
+      formData.append('replyToId', messageData.replyToId);
     }
 
     if (messageData.attachments) {
-      messageData.attachments.forEach((attachment, index) => {
-        // If attachment is a File or Blob, append directly
-        if (attachment instanceof File || attachment instanceof Blob) {
-          formData.append('attachments', attachment);
-        }
-        // Otherwise, skip or handle error as needed
+      messageData.attachments.forEach((file) => {
+        formData.append('attachments', file);
       });
     }
 
@@ -150,7 +241,7 @@ export class MessagesService {
         this.pendingMessages.delete(tempId);
         return this.handleError(error);
       }),
-      retry(2)
+      retry(1)
     );
   }
 
@@ -158,6 +249,10 @@ export class MessagesService {
    * Delete a message
    */
   deleteMessage(messageId: string): Observable<void> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     return this.http
       .delete<void>(`${this.apiUrl}/${messageId}`)
       .pipe(catchError(this.handleError));
@@ -167,6 +262,10 @@ export class MessagesService {
    * Edit a message
    */
   editMessage(messageId: string, content: string): Observable<Message> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     return this.http
       .patch<Message>(`${this.apiUrl}/${messageId}`, { content })
       .pipe(catchError(this.handleError));
@@ -176,6 +275,10 @@ export class MessagesService {
    * Mark message as read
    */
   markAsRead(messageId: string): Observable<void> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     return this.http
       .post<void>(`${this.apiUrl}/${messageId}/read`, {})
       .pipe(catchError(this.handleError));
@@ -185,6 +288,10 @@ export class MessagesService {
    * Mark all messages in chat as read
    */
   markChatAsRead(chatId: string): Observable<void> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     return this.http
       .post<void>(`${this.apiUrl}/chat/${chatId}/read`, {})
       .pipe(catchError(this.handleError));
@@ -198,6 +305,10 @@ export class MessagesService {
     chatId?: string,
     limit: number = 20
   ): Observable<MessageSearchResult> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('Authentication required'));
+    }
+
     let params = new HttpParams()
       .set('query', query)
       .set('limit', limit.toString());
@@ -218,13 +329,11 @@ export class MessagesService {
     if (this.socket) {
       this.socket.emit('typing', { chatId, isTyping: true });
 
-      // Clear existing timeout
       const existingTimeout = this.typingTimeouts.get(chatId);
       if (existingTimeout) {
         clearTimeout(existingTimeout);
       }
 
-      // Set new timeout to stop typing
       const timeout = setTimeout(() => {
         this.sendStopTyping(chatId);
       }, 3000);
@@ -298,18 +407,13 @@ export class MessagesService {
     const pendingMessages = Array.from(this.pendingMessages.values());
     pendingMessages.forEach((message) => {
       if (message.status === 'failed') {
-        this.sendMessage({
-          _id: message._id || '', // Provide a fallback if missing
+        const messageData: CreateMessageDto = {
           chatId: message.chatId,
           content: message.content,
           type: message.type,
-          sender: message.sender || ({} as User),
-          timestamp: message.timestamp || new Date(),
-          status: 'sending',
-          readBy: message.readBy || [],
-          replyTo: message.replyTo,
-          attachments: message.attachments || [],
-        }).subscribe();
+          replyToId: message.replyTo,
+        };
+        this.sendMessage(messageData).subscribe();
       }
     });
   }
@@ -328,72 +432,7 @@ export class MessagesService {
     this.typingTimeouts.clear();
   }
 
-  private handleError(error: any): Observable<never> {
-    console.error('MessagesService error:', error);
-
-    let errorMessage = 'An error occurred';
-    if (error.error?.message) {
-      errorMessage = error.error.message;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
-    return throwError(() => new Error(errorMessage));
-  }
-
-  private initializeSocketConnection(): void {
-    const user = this.authService.getCurrentUser();
-
-    if (user && !this.socket) {
-      this.socket = io(environment.socketUrl, {
-        auth: {
-          token: this.authService.getToken(),
-        },
-        transports: ['websocket'],
-      });
-
-      this.setupSocketListeners();
-    } else if (!user && this.socket) {
-      this.disconnectSocket();
-    }
-  }
-
-  private setupSocketListeners(): void {
-    if (!this.socket) return;
-
-    this.socket.on('connect', () => {
-      console.log('Connected to message socket');
-    });
-
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from message socket');
-    });
-
-    this.socket.on('newMessage', (message: Message) => {
-      this.handleNewMessage(message);
-    });
-
-    this.socket.on('messageStatus', (status: MessageStatus) => {
-      this.handleMessageStatus(status);
-    });
-
-    this.socket.on('userTyping', (data: TypingStatus) => {
-      this.handleTypingStatus(data);
-    });
-
-    this.socket.on('messageDeleted', (messageId: string) => {
-      this.handleMessageDeleted(messageId);
-    });
-
-    this.socket.on('messageUpdated', (message: Message) => {
-      this.handleMessageUpdated(message);
-    });
-
-    this.socket.on('error', (error: any) => {
-      console.error('Socket error:', error);
-    });
-  }
-
+  // Private message handlers
   private handleNewMessage(message: Message): void {
     // Update cache
     const chatMessages = this.messageCache.get(message.chatId) || [];
@@ -411,17 +450,20 @@ export class MessagesService {
   private handleMessageStatus(status: MessageStatus): void {
     // Update message in cache
     const allMessages = Array.from(this.messageCache.values()).flat();
-    const message = allMessages.find((m) => m._id === status);
-    const user = this.authService.getCurrentUser();
+    const message = allMessages.find((m) => m._id === status.messageId);
 
-    if (message && user) {
-      message.status = status;
-      message.readBy = message.readBy || [];
-
-      if (status === 'read') {
-        const readByUser = message.readBy.find((r) => r._id === user?._id);
-        if (!readByUser) {
-          message.readBy.push(user);
+    if (message) {
+      message.status = status.status as any;
+      if (status.status === 'read' && status.userId) {
+        const user = this.authService.getCurrentUser();
+        if (user && user._id === status.userId) {
+          message.readBy = message.readBy || [];
+          const alreadyRead = message.readBy.find(
+            (u) => u._id === status.userId
+          );
+          if (!alreadyRead && user) {
+            message.readBy.push(user);
+          }
         }
       }
     }
@@ -459,6 +501,28 @@ export class MessagesService {
 
     this.messageUpdatedSubject.next(message);
   }
+
+  private handleError = (error: any): Observable<never> => {
+    console.error('MessagesService error:', error);
+
+    let errorMessage = 'An error occurred';
+
+    if (error.status === 401) {
+      errorMessage = 'Authentication failed';
+    } else if (error.status === 403) {
+      errorMessage = 'Access denied';
+    } else if (error.status === 404) {
+      errorMessage = 'Resource not found';
+    } else if (error.status === 500) {
+      errorMessage = 'Server error - Please try again later';
+    } else if (error.error?.message) {
+      errorMessage = error.error.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return throwError(() => new Error(errorMessage));
+  };
 
   ngOnDestroy(): void {
     this.disconnectSocket();

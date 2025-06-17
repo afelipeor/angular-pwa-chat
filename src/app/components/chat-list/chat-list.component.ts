@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
-import { Chat, User } from '../../models';
+import { Chat, LoginCredentials, User } from '../../models';
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
 import { HeaderMenuComponent } from '../header-menu/header-menu.component';
@@ -34,13 +34,11 @@ export class ChatListComponent implements OnInit {
 
   ngOnInit(): void {
     // Initialize mock user for demo
-    const mockUser: User = {
-      _id: '1',
-      name: 'John Doe',
+    const mockLogin: LoginCredentials = {
       email: 'john@example.com',
-      status: 'online',
+      password: 'password123',
     };
-    this.authService.login(mockUser);
+    this.authService.login(mockLogin);
   }
 
   openChat(chat: Chat): void {

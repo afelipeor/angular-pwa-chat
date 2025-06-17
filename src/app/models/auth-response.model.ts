@@ -1,8 +1,8 @@
-import { AuthUser } from './auth-user.model';
+import { User } from './user.model';
 
 export interface AuthResponse {
-    user: AuthUser;
-    token: string;
-    refreshToken: string;
-    expiresIn: number;
-  }
+  user: User;
+  token: string;
+  refreshToken?: string;
+  expiresIn?: number;
+}

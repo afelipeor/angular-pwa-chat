@@ -109,7 +109,9 @@ export class NewChatComponent implements OnInit {
       .toUpperCase();
   }
 
-  getStatusColor(status: string): string {
+  getStatusColor(status?: string): string {
+    if (!status) return '#9e9e9e';
+
     switch (status) {
       case 'online':
         return '#4caf50';
@@ -124,14 +126,6 @@ export class NewChatComponent implements OnInit {
 
   isContactSelected(contact: Contact): boolean {
     return this.selectedContacts.some((c) => c._id === contact._id);
-  }
-
-  trackByContactId(_index: number, contact: Contact): string {
-    return contact._id;
-  }
-
-  trackBySelectedContactId(_index: number, contact: Contact): string {
-    return contact._id;
   }
 
   // Private methods
