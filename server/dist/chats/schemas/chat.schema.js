@@ -16,10 +16,6 @@ let Chat = class Chat {
 };
 exports.Chat = Chat;
 __decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Chat.prototype, "_id", void 0);
-__decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], Chat.prototype, "name", void 0);

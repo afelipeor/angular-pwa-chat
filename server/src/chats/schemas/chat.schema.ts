@@ -5,9 +5,6 @@ export type ChatDocument = Chat & Document;
 
 @Schema({ timestamps: true })
 export class Chat {
-  @Prop()
-  _id: string;
-
   @Prop({ required: true })
   name: string;
 

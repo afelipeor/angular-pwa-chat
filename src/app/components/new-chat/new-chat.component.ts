@@ -7,10 +7,11 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { Contact, User } from '../../models';
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
+import { UsersService } from '../../services/users.service';
 
 @Component({
   selector: 'app-new-chat',
@@ -27,9 +28,9 @@ export class NewChatComponent implements OnInit {
   groupName = '';
   showGroupNameInput = false;
   currentUser$: Observable<User | null>;
-
   private authService = inject(AuthService);
   private chatService = inject(ChatService);
+  private usersService = inject(UsersService);
   private router = inject(Router);
 
   constructor() {
@@ -78,7 +79,6 @@ export class NewChatComponent implements OnInit {
 
     this.showGroupNameInput = this.selectedContacts.length > 1;
   }
-
   createChat(): void {
     if (this.selectedContacts.length === 0) {
       return;
@@ -89,12 +89,21 @@ export class NewChatComponent implements OnInit {
         ? this.groupName.trim()
         : undefined;
 
-    const newChat = this.chatService.createNewChat(
-      this.selectedContacts,
-      chatName
-    );
-
-    this.router.navigate(['/chat', newChat._id]);
+    this.chatService.createNewChat(this.selectedContacts, chatName).subscribe({
+      next: (newChat) => {
+        console.log('New chat created:', newChat);
+        // Ensure we have a valid chat ID before navigating
+        if (newChat && newChat._id) {
+          this.router.navigate(['/chat', newChat._id]);
+        } else {
+          console.error('Invalid chat response:', newChat);
+        }
+      },
+      error: (error) => {
+        console.error('Error creating chat:', error);
+        // Handle error - maybe show a toast notification
+      },
+    });
   }
 
   goBack(): void {
@@ -127,52 +136,33 @@ export class NewChatComponent implements OnInit {
   isContactSelected(contact: Contact): boolean {
     return this.selectedContacts.some((c) => c._id === contact._id);
   }
-
   // Private methods
   private loadContacts(): void {
-    this.contacts = [
-      {
-        _id: '2',
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
-        status: 'online',
-        avatar: '',
-      },
-      {
-        _id: '3',
-        name: 'Bob Smith',
-        email: 'bob@example.com',
-        status: 'away',
-        avatar: '',
-      },
-      {
-        _id: '4',
-        name: 'Carol Davis',
-        email: 'carol@example.com',
-        status: 'online',
-        avatar: '',
-      },
-      {
-        _id: '5',
-        name: 'David Wilson',
-        email: 'david@example.com',
-        status: 'offline',
-        avatar: '',
-      },
-      {
-        _id: '6',
-        name: 'Emma Brown',
-        email: 'emma@example.com',
-        status: 'online',
-        avatar: '',
-      },
-      {
-        _id: '7',
-        name: 'Frank Miller',
-        email: 'frank@example.com',
-        status: 'away',
-        avatar: '',
-      },
-    ];
+    const currentUser = this.authService.getCurrentUser();
+
+    this.usersService
+      .getAllUsers()
+      .pipe(
+        map((users) => users.filter((user) => user._id !== currentUser?._id)), // Exclude current user
+        map((users) =>
+          users.map(
+            (user) =>
+              ({
+                ...user,
+                selected: false,
+              } as Contact)
+          )
+        )
+      )
+      .subscribe({
+        next: (contacts) => {
+          this.contacts = contacts;
+        },
+        error: (error) => {
+          console.error('Error loading contacts:', error);
+          // Fallback to empty array if API fails
+          this.contacts = [];
+        },
+      });
   }
 }

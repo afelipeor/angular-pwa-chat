@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Chat, Message, User } from '../models';
 import { AuthService } from './auth.service';
@@ -66,19 +67,30 @@ export class ChatService {
   getChat(chatId: string): Observable<Chat> {
     return this.http.get<Chat>(`${environment.apiUrl}/chats/${chatId}`);
   }
+  createNewChat(participants: User[], name?: string): Observable<Chat> {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      return throwError(() => new Error('User not authenticated'));
+    }
 
-  createNewChat(participants: User[], name?: string): Chat {
-    const newChat: Chat = {
-      _id: Date.now().toString(),
+    const createChatDto = {
       name: name || participants.map((p) => p.name).join(', '),
-      participants: [...participants, this.authService.getCurrentUser()!],
-      unreadCount: 0,
+      participants: participants.map((p) => p._id).filter((id) => id), // Remove any undefined IDs
       isGroup: participants.length > 1,
     };
 
-    const currentChats = this.chatsSubject.value;
-    this.chatsSubject.next([newChat, ...currentChats]);
-    return newChat;
+    console.log('Creating chat with DTO:', createChatDto);
+
+    return this.http
+      .post<Chat>(`${environment.apiUrl}/chats`, createChatDto)
+      .pipe(
+        tap((newChat) => {
+          console.log('Server response for new chat:', newChat);
+          // Add the new chat to the current list
+          const currentChats = this.chatsSubject.value;
+          this.chatsSubject.next([newChat, ...currentChats]);
+        })
+      );
   }
 
   sendMessage(content: string, chatId: string): void {

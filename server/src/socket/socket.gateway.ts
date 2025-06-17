@@ -77,12 +77,10 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.connectedUsers.set(payload.sub, client.id);
 
       // Update user status to online
-      await this.usersService.updateStatus(payload.sub, 'online');
-
-      // Join user's chat rooms
+      await this.usersService.updateStatus(payload.sub, 'online'); // Join user's chat rooms
       const userChats = await this.chatsService.findAll(payload.sub);
       userChats.forEach((chat) => {
-        client.join(`chat-${chat._id}`);
+        client.join(`chat-${(chat as any)._id}`);
       });
 
       // Notify other users about online status
