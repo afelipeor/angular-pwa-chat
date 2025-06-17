@@ -119,6 +119,20 @@ export class MessagesService {
       this.handleMessageUpdated(message);
     });
 
+    this.socket.on('connect_error', (error: any) => {
+      console.error('Socket connection error:', error);
+      // If it's an authentication error, clear token and redirect to login
+      if (
+        error.message?.includes('authentication') ||
+        error.message?.includes('token')
+      ) {
+        console.warn(
+          'WebSocket authentication failed, clearing tokens and redirecting to login'
+        );
+        this.authService.logout();
+      }
+    });
+
     this.socket.on('error', (error: any) => {
       console.error('Socket error:', error);
     });
@@ -202,25 +216,41 @@ export class MessagesService {
     const chatMessages = this.messageCache.get(messageData.chatId) || [];
     chatMessages.push(optimisticMessage);
     this.messageCache.set(messageData.chatId, chatMessages);
-    this.messagesSubject.next(chatMessages);
+    this.messagesSubject.next(chatMessages); // Prepare request data - use FormData only if there are file attachments
+    let requestBody: FormData | any;
+    let hasAttachments =
+      messageData.attachments && messageData.attachments.length > 0;
 
-    // Prepare form data
-    const formData = new FormData();
-    formData.append('chatId', messageData.chatId);
-    formData.append('content', messageData.content);
-    formData.append('type', messageData.type || 'text');
+    if (hasAttachments) {
+      // Use FormData for file uploads
+      const formData = new FormData();
+      formData.append('chatId', messageData.chatId);
+      formData.append('content', messageData.content);
+      formData.append('type', messageData.type || 'text');
 
-    if (messageData.replyToId) {
-      formData.append('replyToId', messageData.replyToId);
-    }
+      if (messageData.replyToId) {
+        formData.append('replyToId', messageData.replyToId);
+      }
 
-    if (messageData.attachments) {
-      messageData.attachments.forEach((file) => {
+      messageData.attachments!.forEach((file) => {
         formData.append('attachments', file);
       });
+
+      requestBody = formData;
+    } else {
+      // Use JSON for text messages
+      requestBody = {
+        chatId: messageData.chatId,
+        content: messageData.content,
+        type: messageData.type || 'text',
+      };
+
+      if (messageData.replyToId) {
+        requestBody.replyToId = messageData.replyToId;
+      }
     }
 
-    return this.http.post<Message>(this.apiUrl, formData).pipe(
+    return this.http.post<Message>(this.apiUrl, requestBody).pipe(
       tap((message) => {
         // Replace optimistic message with real message
         const messages = this.messageCache.get(messageData.chatId) || [];

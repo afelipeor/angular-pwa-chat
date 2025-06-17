@@ -16,10 +16,6 @@ let Message = class Message {
 };
 exports.Message = Message;
 __decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Message.prototype, "_id", void 0);
-__decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], Message.prototype, "content", void 0);

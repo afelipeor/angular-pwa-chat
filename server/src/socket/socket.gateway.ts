@@ -260,7 +260,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         originalSenderId,
         'New message from ChatBot',
         randomMessage,
-        { chatId, messageId: autoMessage._id }
+        { chatId, messageId: (autoMessage as any)._id }
       );
 
       console.log(`Auto-response sent to chat ${chatId}: ${randomMessage}`);
