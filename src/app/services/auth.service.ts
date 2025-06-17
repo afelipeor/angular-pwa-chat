@@ -6,6 +6,7 @@ import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthResponse, LoginCredentials, RegisterData } from '../models';
 import { User } from '../models/user.model';
+import { SocketService } from './socket.service';
 
 @Injectable({
   providedIn: 'root',
@@ -18,10 +19,13 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   public token$ = this.tokenSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private socketService: SocketService
+  ) {
     this.initializeAuth();
   }
-
   private initializeAuth(): void {
     const token = this.getStoredToken();
     const user = this.getStoredUser();
@@ -29,6 +33,8 @@ export class AuthService {
     if (token && user) {
       this.currentUserSubject.next(user);
       this.tokenSubject.next(token);
+      // Establish socket connection for authenticated user
+      this.socketService.connect(token);
     }
   }
 
@@ -72,8 +78,7 @@ export class AuthService {
 
   /**
    * Login user
-   */
-  login(
+   */ login(
     credentials: LoginCredentials,
     remember: boolean = true
   ): Observable<AuthResponse> {
@@ -84,6 +89,8 @@ export class AuthService {
           this.setStoredAuth(response.user, response.token, remember);
           this.currentUserSubject.next(response.user);
           this.tokenSubject.next(response.token);
+          // Establish socket connection for authenticated user
+          this.socketService.connect(response.token);
         }),
         catchError(this.handleError)
       );
@@ -91,8 +98,7 @@ export class AuthService {
 
   /**
    * Register new user
-   */
-  register(userData: RegisterData): Observable<AuthResponse> {
+   */ register(userData: RegisterData): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${this.apiUrl}/register`, userData)
       .pipe(
@@ -100,17 +106,42 @@ export class AuthService {
           this.setStoredAuth(response.user, response.token, true);
           this.currentUserSubject.next(response.user);
           this.tokenSubject.next(response.token);
+          // Establish socket connection for authenticated user
+          this.socketService.connect(response.token);
         }),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Logout user
+   * Clear authentication state without logout navigation
+   * Used internally when tokens are invalid
    */
-  logout(): void {
-    // Optional: Call server logout endpoint
+  clearAuth(): void {
+    // Disconnect socket
+    this.socketService.disconnect();
+
+    // Clear local state
+    this.clearStorage();
+    this.currentUserSubject.next(null);
+    this.tokenSubject.next(null);
+  }
+
+  /**
+   * Logout user
+   */ logout(): void {
+    // Get token before clearing it
     const token = this.getToken();
+
+    // Disconnect socket first
+    this.socketService.disconnect();
+
+    // Clear local state immediately
+    this.clearStorage();
+    this.currentUserSubject.next(null);
+    this.tokenSubject.next(null);
+
+    // Optional: Call server logout endpoint (but don't wait for it)
     if (token) {
       this.http
         .post(
@@ -122,12 +153,12 @@ export class AuthService {
         )
         .subscribe({
           complete: () => console.log('Logged out from server'),
+          error: () =>
+            console.log('Server logout failed, but local logout successful'),
         });
     }
 
-    this.clearStorage();
-    this.currentUserSubject.next(null);
-    this.tokenSubject.next(null);
+    // Navigate to login
     this.router.navigate(['/login']);
   }
 
@@ -153,37 +184,6 @@ export class AuthService {
     const user = this.getCurrentUser();
     return !!(token && user);
   }
-
-  /**
-   * Refresh token
-   */
-  refreshToken(): Observable<AuthResponse> {
-    const token = this.getToken();
-    if (!token) {
-      return throwError(() => new Error('No token available'));
-    }
-
-    return this.http
-      .post<AuthResponse>(
-        `${this.apiUrl}/refresh`,
-        {},
-        {
-          headers: new HttpHeaders().set('Authorization', `Bearer ${token}`),
-        }
-      )
-      .pipe(
-        tap((response) => {
-          this.setStoredAuth(response.user, response.token, true);
-          this.currentUserSubject.next(response.user);
-          this.tokenSubject.next(response.token);
-        }),
-        catchError((error) => {
-          this.logout();
-          return this.handleError(error);
-        })
-      );
-  }
-
   /**
    * Verify token validity
    */

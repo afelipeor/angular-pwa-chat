@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { Chat, Message, User } from '../models';
 import { AuthService } from './auth.service';
 import { PushNotificationService } from './push-notification.service';
@@ -21,85 +22,40 @@ export class ChatService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private pushService = inject(PushNotificationService);
-
   constructor() {
-    this.initializeMockChats();
+    // Don't automatically load chats - wait for explicit call
+  }
+  private loadChats(): void {
+    const token = this.authService.getToken();
+    const user = this.authService.getCurrentUser();
+
+    if (token && user && this.authService.isAuthenticated()) {
+      this.http.get<Chat[]>(`${environment.apiUrl}/chats`).subscribe({
+        next: (chats) => {
+          this.chatsSubject.next(chats);
+        },
+        error: (error) => {
+          console.error('Error loading chats:', error);
+          this.chatsSubject.next([]);
+          // AuthInterceptor will handle 401 errors by logging out
+        },
+      });
+    } else {
+      console.log('User not authenticated, cannot load chats');
+      this.chatsSubject.next([]);
+    }
   }
 
-  private initializeMockChats(): void {
-    const mockChats: Chat[] = [
-      {
-        _id: '1',
-        name: 'Alice Johnson',
-        participants: [
-          {
-            _id: '2',
-            name: 'Alice Johnson',
-            email: 'alice@example.com',
-            status: 'online',
-          },
-          this.authService.getCurrentUser()!,
-        ],
-        unreadCount: 2,
-        isGroup: false,
-        lastMessage: {
-          _id: '1',
-          content: 'Hey! How are you doing?',
-          timestamp: new Date(Date.now() - 300000),
-          sender: {
-            _id: '2',
-            name: 'Alice Johnson',
-            email: 'alice@example.com',
-            status: 'online',
-          },
-          chatId: '1',
-          type: 'text',
-          status: 'sent',
-          readBy: [],
-        },
-        createdAt: new Date(Date.now() - 7200000),
-        updatedAt: new Date(Date.now() - 600000),
-      },
-      {
-        _id: '2',
-        name: 'Team Discussion',
-        participants: [
-          {
-            _id: '3',
-            name: 'Bob Smith',
-            email: 'bob@example.com',
-            status: 'away',
-          },
-          {
-            _id: '4',
-            name: 'Carol Davis',
-            email: 'carol@example.com',
-            status: 'online',
-          },
-          this.authService.getCurrentUser()!,
-        ],
-        unreadCount: 0,
-        isGroup: true,
-        lastMessage: {
-          _id: '2',
-          content: 'Great job on the project!',
-          timestamp: new Date(Date.now() - 3600000),
-          sender: {
-            _id: '3',
-            name: 'Bob Smith',
-            email: 'bob@example.com',
-            status: 'away',
-          },
-          chatId: '2',
-          status: 'read',
-          type: 'text',
-          readBy: [],
-        },
-        createdAt: new Date(Date.now() - 7200000),
-        updatedAt: new Date(Date.now() - 600000),
-      },
-    ];
-    this.chatsSubject.next(mockChats);
+  // Public method to reload chats (can be called after authentication)
+  public reloadChats(): void {
+    this.loadChats();
+  }
+
+  // Public method to clear chats (called on logout)
+  public clearChats(): void {
+    this.chatsSubject.next([]);
+    this.messagesSubject.next([]);
+    this.selectedChatSubject.next(null);
   }
 
   selectChat(chat: Chat): void {
@@ -107,10 +63,8 @@ export class ChatService {
     this.loadMessages(chat._id);
     this.markAsRead(chat._id);
   }
-
   getChat(chatId: string): Observable<Chat> {
-    // Replace this mock with actual HTTP call or logic as needed
-    return of({ _id: chatId, name: 'Sample Chat', isGroup: false } as Chat);
+    return this.http.get<Chat>(`${environment.apiUrl}/chats/${chatId}`);
   }
 
   createNewChat(participants: User[], name?: string): Chat {

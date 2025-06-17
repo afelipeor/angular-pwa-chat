@@ -3,11 +3,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  OnDestroy,
   OnInit,
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { Observable } from 'rxjs';
-import { Chat, LoginCredentials, User } from '../../models';
+import { Observable, Subscription } from 'rxjs';
+import { Chat, User } from '../../models';
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
 import { HeaderMenuComponent } from '../header-menu/header-menu.component';
@@ -20,9 +21,10 @@ import { HeaderMenuComponent } from '../header-menu/header-menu.component';
   styleUrls: ['./chat-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ChatListComponent implements OnInit {
+export class ChatListComponent implements OnInit, OnDestroy {
   chats$: Observable<Chat[]>;
   currentUser$: Observable<User | null>;
+  private authSubscription: Subscription | null = null;
 
   chatService = inject(ChatService);
   authService = inject(AuthService);
@@ -31,14 +33,25 @@ export class ChatListComponent implements OnInit {
     this.chats$ = this.chatService.chats$;
     this.currentUser$ = this.authService.currentUser$;
   }
-
   ngOnInit(): void {
-    // Initialize mock user for demo
-    const mockLogin: LoginCredentials = {
-      email: 'john@example.com',
-      password: 'password123',
-    };
-    this.authService.login(mockLogin);
+    // Subscribe to authentication state changes
+    this.authSubscription = this.authService.currentUser$.subscribe((user) => {
+      if (user && this.authService.isAuthenticated()) {
+        // User is authenticated, load chats
+        this.chatService.reloadChats();
+      } else {
+        // User is not authenticated, clear chats
+        // Don't call logout here as it can cause infinite loops
+        // The AuthInterceptor handles 401 errors and the AuthGuard handles redirects
+        this.chatService.clearChats();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
+    }
   }
 
   openChat(chat: Chat): void {

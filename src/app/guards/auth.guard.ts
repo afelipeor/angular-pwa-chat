@@ -9,14 +9,18 @@ import { AuthService } from '../services/auth.service';
 })
 export class AuthGuard implements CanActivate {
   constructor(private authService: AuthService, private router: Router) {}
-
   canActivate(): Observable<boolean | UrlTree> {
     return this.authService.currentUser$.pipe(
       take(1),
       map((user) => {
-        if (user && this.authService.getToken()) {
+        const token = this.authService.getToken();
+        if (user && token) {
           return true;
         } else {
+          // Clear any invalid tokens without logout navigation
+          if (!user && token) {
+            this.authService.clearAuth();
+          }
           return this.router.createUrlTree(['/login']);
         }
       })

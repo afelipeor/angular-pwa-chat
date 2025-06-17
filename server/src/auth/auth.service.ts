@@ -41,9 +41,8 @@ export class AuthService {
 
     // Update user status to online - convert ObjectId to string
     await this.usersService.updateStatus(userId.toString(), 'online');
-
     return {
-      access_token: this.jwtService.sign(payload),
+      token: this.jwtService.sign(payload),
       user: {
         id: userId.toString(),
         name: user.name,
