@@ -53,9 +53,12 @@ let SocketGateway = class SocketGateway {
                 return;
             }
             const payload = this.jwtService.verify(token);
+            console.log('JWT payload:', payload);
             const user = await this.usersService.findOne(payload.sub);
+            console.log('Found user:', user._id);
             client.userId = payload.sub;
             client.user = user;
+            console.log('Set client.userId to:', client.userId);
             this.connectedUsers.set(payload.sub, client.id);
             await this.usersService.updateStatus(payload.sub, 'online');
             const userChats = await this.chatsService.findAll(payload.sub);
@@ -79,6 +82,7 @@ let SocketGateway = class SocketGateway {
         }
     }
     async handleDisconnect(client) {
+        console.log('Disconnect triggered for client:', client.id, 'userId:', client.userId);
         if (client.userId) {
             this.connectedUsers.delete(client.userId);
             await this.usersService.updateStatus(client.userId, 'offline');
@@ -110,6 +114,16 @@ let SocketGateway = class SocketGateway {
     }
     async handleJoinChat(data, client) {
         try {
+            console.log(`User ${client.userId} trying to join chat ${data.chatId}`);
+            console.log('Client auth state:', {
+                userId: client.userId,
+                hasUser: !!client.user,
+                userName: client.user?.name,
+            });
+            if (!client.userId || !client.user) {
+                console.log('Client not authenticated yet, rejecting join request');
+                return { success: false, error: 'Authentication required' };
+            }
             await this.chatsService.findOne(data.chatId, client.userId);
             client.join(`chat-${data.chatId}`);
             await this.messagesService.markChatMessagesAsRead(data.chatId, client.userId);
@@ -158,7 +172,7 @@ let SocketGateway = class SocketGateway {
                 type: 'text',
             };
             const botUser = await this.getOrCreateBotUser();
-            const autoMessage = await this.messagesService.create(autoResponseDto, botUser._id.toString());
+            const autoMessage = await this.messagesService.createBotMessage(autoResponseDto, botUser._id.toString());
             this.server.to(`chat-${chatId}`).emit('newMessage', autoMessage);
             await this.notificationsService.sendNotificationToUser(originalSenderId, 'New message from ChatBot', randomMessage, { chatId, messageId: autoMessage._id });
             console.log(`Auto-response sent to chat ${chatId}: ${randomMessage}`);
@@ -272,7 +286,11 @@ __decorate([
 exports.SocketGateway = SocketGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: {
-            origin: ['http://localhost:4200', 'http://localhost:3000'],
+            origin: [
+                'http://localhost:4200',
+                'http://localhost:3000',
+                'http://localhost:3001',
+            ],
             methods: ['GET', 'POST'],
             credentials: true,
         },

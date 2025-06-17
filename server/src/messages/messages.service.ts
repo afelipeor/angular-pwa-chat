@@ -1,9 +1,8 @@
-import
-  {
-    ForbiddenException,
-    Injectable,
-    NotFoundException
-  } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ChatsService } from '../chats/chats.service';
@@ -14,10 +13,12 @@ import { Message, MessageDocument } from './schemas/message.schema';
 export class MessagesService {
   constructor(
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
-    private chatsService: ChatsService,
+    private chatsService: ChatsService
   ) {}
-
-  async create(createMessageDto: CreateMessageDto, senderId: string): Promise<Message> {
+  async create(
+    createMessageDto: CreateMessageDto,
+    senderId: string
+  ): Promise<Message> {
     // Verify user is participant in chat
     await this.chatsService.findOne(createMessageDto.chatId, senderId);
 
@@ -31,7 +32,32 @@ export class MessagesService {
     const savedMessage = await createdMessage.save();
 
     // Increment unread count for other participants
-    await this.chatsService.incrementUnreadCount(createMessageDto.chatId, senderId);
+    await this.chatsService.incrementUnreadCount(
+      createMessageDto.chatId,
+      senderId
+    );
+
+    return this.messageModel
+      .findById(savedMessage._id)
+      .populate('sender', 'name email avatar')
+      .populate('chat', 'name participants')
+      .exec();
+  }
+
+  async createBotMessage(
+    createMessageDto: CreateMessageDto,
+    botUserId: string
+  ): Promise<Message> {
+    // Create bot message without participant validation
+    const createdMessage = new this.messageModel({
+      ...createMessageDto,
+      chat: new Types.ObjectId(createMessageDto.chatId),
+      sender: new Types.ObjectId(botUserId),
+      readBy: [], // Bot messages start unread
+    });
+
+    const savedMessage = await createdMessage.save(); // Don't increment unread count for bot messages
+    // await this.chatsService.incrementUnreadCount(createMessageDto.chatId, botUserId);
 
     return this.messageModel
       .findById(savedMessage._id)
@@ -73,7 +99,7 @@ export class MessagesService {
 
     // Add user to readBy array if not already present
     const userObjectId = new Types.ObjectId(userId);
-    if (!message.readBy.some(id => id.equals(userObjectId))) {
+    if (!message.readBy.some((id) => id.equals(userObjectId))) {
       message.readBy.push(userObjectId);
       await message.save();
     }
@@ -92,7 +118,7 @@ export class MessagesService {
     await this.messageModel.updateMany(
       {
         chat: new Types.ObjectId(chatId),
-        readBy: { $ne: new Types.ObjectId(userId) }
+        readBy: { $ne: new Types.ObjectId(userId) },
       },
       { $addToSet: { readBy: new Types.ObjectId(userId) } }
     );
@@ -101,7 +127,11 @@ export class MessagesService {
     await this.chatsService.markAsRead(chatId, userId);
   }
 
-  async update(id: string, updateMessageDto: UpdateMessageDto, userId: string): Promise<Message> {
+  async update(
+    id: string,
+    updateMessageDto: UpdateMessageDto,
+    userId: string
+  ): Promise<Message> {
     const message = await this.messageModel.findById(id);
 
     if (!message) {

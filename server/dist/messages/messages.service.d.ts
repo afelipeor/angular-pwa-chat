@@ -7,6 +7,7 @@ export declare class MessagesService {
     private chatsService;
     constructor(messageModel: Model<MessageDocument>, chatsService: ChatsService);
     create(createMessageDto: CreateMessageDto, senderId: string): Promise<Message>;
+    createBotMessage(createMessageDto: CreateMessageDto, botUserId: string): Promise<Message>;
     findByChatId(chatId: string, userId: string, page?: number, limit?: number): Promise<Message[]>;
     markAsRead(messageId: string, userId: string): Promise<Message>;
     markChatMessagesAsRead(chatId: string, userId: string): Promise<void>;

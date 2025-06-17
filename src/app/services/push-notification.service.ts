@@ -13,7 +13,7 @@ export class PushNotificationService {
 
   private readonly swPush = inject(SwPush);
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = environment.apiUrl || 'http://localhost:3000/api';
+  private readonly apiUrl = environment.apiUrl || 'http://localhost:3001/api';
 
   /**
    * Subscribe to push notifications
@@ -65,15 +65,11 @@ export class PushNotificationService {
     }
 
     this.http
-      .post(
-        `${this.apiUrl}/notifications/subscribe`,
-        subscriptionData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
+      .post(`${this.apiUrl}/notifications/subscribe`, subscriptionData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .pipe(
         catchError((error) => {
           console.error('Failed to send subscription to server:', error);

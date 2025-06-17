@@ -73,7 +73,7 @@ export class MessagesService {
       if (user && !this.socket) {
         const token = this.authService.getToken();
         if (token) {
-          this.socket = io(environment.socketUrl || 'http://localhost:3000', {
+          this.socket = io(environment.socketUrl || 'http://localhost:3001', {
             auth: {
               token: token,
             },

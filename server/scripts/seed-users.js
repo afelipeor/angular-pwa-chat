@@ -38,7 +38,7 @@ const testUsers = [
 
 async function seedUsers() {
   console.log('Seeding test users...');
-  const baseUrl = 'http://localhost:3000/api';
+  const baseUrl = 'http://localhost:3001/api';
 
   for (const user of testUsers) {
     try {

@@ -39,6 +39,20 @@ let MessagesService = class MessagesService {
             .populate('chat', 'name participants')
             .exec();
     }
+    async createBotMessage(createMessageDto, botUserId) {
+        const createdMessage = new this.messageModel({
+            ...createMessageDto,
+            chat: new mongoose_2.Types.ObjectId(createMessageDto.chatId),
+            sender: new mongoose_2.Types.ObjectId(botUserId),
+            readBy: [],
+        });
+        const savedMessage = await createdMessage.save();
+        return this.messageModel
+            .findById(savedMessage._id)
+            .populate('sender', 'name email avatar')
+            .populate('chat', 'name participants')
+            .exec();
+    }
     async findByChatId(chatId, userId, page = 1, limit = 50) {
         await this.chatsService.findOne(chatId, userId);
         const skip = (page - 1) * limit;
@@ -58,7 +72,7 @@ let MessagesService = class MessagesService {
         }
         await this.chatsService.findOne(message.chat.toString(), userId);
         const userObjectId = new mongoose_2.Types.ObjectId(userId);
-        if (!message.readBy.some(id => id.equals(userObjectId))) {
+        if (!message.readBy.some((id) => id.equals(userObjectId))) {
             message.readBy.push(userObjectId);
             await message.save();
         }
@@ -72,7 +86,7 @@ let MessagesService = class MessagesService {
         await this.chatsService.findOne(chatId, userId);
         await this.messageModel.updateMany({
             chat: new mongoose_2.Types.ObjectId(chatId),
-            readBy: { $ne: new mongoose_2.Types.ObjectId(userId) }
+            readBy: { $ne: new mongoose_2.Types.ObjectId(userId) },
         }, { $addToSet: { readBy: new mongoose_2.Types.ObjectId(userId) } });
         await this.chatsService.markAsRead(chatId, userId);
     }

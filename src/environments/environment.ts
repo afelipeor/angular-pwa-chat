@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api',
-  socketUrl: 'http://localhost:3000',
+  apiUrl: '/api',
+  socketUrl: 'http://localhost:4200',
   vapidPublicKey: 'YOUR_VAPID_PUBLIC_KEY_HERE',
 };

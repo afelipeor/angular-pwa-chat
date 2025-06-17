@@ -22,7 +22,11 @@ interface AuthenticatedSocket extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:4200', 'http://localhost:3000'],
+    origin: [
+      'http://localhost:4200',
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -67,12 +71,13 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.disconnect();
         return;
       }
-
       const payload = this.jwtService.verify(token);
+      console.log('JWT payload:', payload);
       const user = await this.usersService.findOne(payload.sub);
-
+      console.log('Found user:', user._id);
       client.userId = payload.sub;
       client.user = user;
+      console.log('Set client.userId to:', client.userId);
 
       this.connectedUsers.set(payload.sub, client.id);
 
@@ -100,8 +105,13 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect();
     }
   }
-
   async handleDisconnect(client: AuthenticatedSocket) {
+    console.log(
+      'Disconnect triggered for client:',
+      client.id,
+      'userId:',
+      client.userId
+    );
     if (client.userId) {
       this.connectedUsers.delete(client.userId);
 
@@ -155,12 +165,24 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('joinChat')
-  async handleJoinChat(
+  @SubscribeMessage('joinChat') async handleJoinChat(
     @MessageBody() data: { chatId: string },
     @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
+      console.log(`User ${client.userId} trying to join chat ${data.chatId}`);
+      console.log('Client auth state:', {
+        userId: client.userId,
+        hasUser: !!client.user,
+        userName: client.user?.name,
+      });
+
+      // Check if client is authenticated
+      if (!client.userId || !client.user) {
+        console.log('Client not authenticated yet, rejecting join request');
+        return { success: false, error: 'Authentication required' };
+      }
+
       // Verify user can access this chat
       await this.chatsService.findOne(data.chatId, client.userId);
 
@@ -244,10 +266,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
 
       // Get or create bot user
-      const botUser = await this.getOrCreateBotUser();
-
-      // Create the auto-response message
-      const autoMessage = await this.messagesService.create(
+      const botUser = await this.getOrCreateBotUser(); // Create the auto-response message using the bot-specific method
+      const autoMessage = await this.messagesService.createBotMessage(
         autoResponseDto,
         botUser._id.toString()
       );
