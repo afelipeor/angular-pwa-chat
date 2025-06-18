@@ -471,4 +471,141 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
       });
   }
+
+  /**
+   * Check if this is the last message sent by this specific sender
+   */
+  isLastMessageBySender(message: Message, index: number): boolean {
+    // Get sender ID
+    const senderId =
+      typeof message.sender === 'string' ? message.sender : message.sender._id;
+
+    // Check if any subsequent message is from the same sender
+    for (let i = index + 1; i < this.messages.length; i++) {
+      const nextMessage = this.messages[i];
+      const nextSenderId =
+        typeof nextMessage.sender === 'string'
+          ? nextMessage.sender
+          : nextMessage.sender._id;
+
+      if (nextSenderId === senderId) {
+        return false; // Found a later message from same sender
+      }
+    }
+
+    return true; // This is the last message from this sender
+  }
+
+  /**
+   * Check if message has been read by other users (not including sender)
+   */
+  isMessageRead(message: Message): boolean {
+    if (!message.readBy || message.readBy.length === 0) {
+      return false;
+    }
+
+    // Get current user ID
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return false;
+
+    const currentUserId = currentUser._id;
+
+    // Check if anyone other than the sender has read it
+    return message.readBy.some((reader) => {
+      const readerId = typeof reader === 'string' ? reader : reader._id;
+      return readerId !== currentUserId;
+    });
+  }
+
+  /**
+   * Get read status text for own messages
+   */
+  getReadStatusText(message: Message): string {
+    if (!this.isOwnMessage(message)) {
+      return ''; // Only show read status for own messages
+    }
+
+    switch (message.status) {
+      case 'sending':
+        return 'Sending...';
+      case 'sent':
+        return 'Sent';
+      case 'delivered':
+        return 'Delivered';
+      case 'read':
+        return 'Read';
+      case 'failed':
+        return 'Failed';
+      default:
+        return this.isMessageRead(message) ? 'Read' : 'Sent';
+    }
+  }
+
+  /**
+   * Get read status icon for own messages
+   */
+  getReadStatusIcon(message: Message): string {
+    if (!this.isOwnMessage(message)) {
+      return ''; // Only show read status for own messages
+    }
+
+    switch (message.status) {
+      case 'sending':
+        return 'schedule';
+      case 'sent':
+        return 'done';
+      case 'delivered':
+        return 'done_all';
+      case 'read':
+        return 'done_all';
+      case 'failed':
+        return 'error';
+      default:
+        return this.isMessageRead(message) ? 'done_all' : 'done';
+    }
+  }
+
+  /**
+   * Mark messages as read when user views the chat
+   */
+  private markMessagesAsRead(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return;
+
+    const unreadMessages = this.messages.filter((message) => {
+      // Don't mark own messages as read
+      if (this.isOwnMessage(message)) return false;
+
+      // Check if current user hasn't read this message yet
+      return !message.readBy.some((reader) => {
+        const readerId = typeof reader === 'string' ? reader : reader._id;
+        return readerId === currentUser._id;
+      });
+    });
+
+    if (unreadMessages.length > 0) {
+      console.log(`📖 Marking ${unreadMessages.length} messages as read`);
+      // Call backend to mark messages as read
+      unreadMessages.forEach((message) => {
+        this.messagesService.markAsRead(message._id).subscribe({
+          next: () => {
+            // Add current user to readBy array locally
+            if (
+              !message.readBy.some((reader) => {
+                const readerId =
+                  typeof reader === 'string' ? reader : reader._id;
+                return readerId === currentUser._id;
+              })
+            ) {
+              message.readBy.push(currentUser);
+              this.cdr.markForCheck();
+            }
+          },
+          error: (error: any) => {
+            console.error('Error marking message as read:', error);
+          },
+        });
+      });
+    }
+  }
 }

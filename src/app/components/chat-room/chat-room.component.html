@@ -61,14 +61,28 @@
           {{ message.sender.name }}
         </div>
         }
-
         <div class="message-content">
           {{ message.content }}
         </div>
 
-        @if(message.timestamp){
-        <div class="message-time">
-          {{ getMessageTime(message.timestamp) }}
+        <!-- Show timestamp and read status on all messages -->
+        @if(message.timestamp) {
+        <div class="message-meta">
+          <div class="message-time">
+            {{ getMessageTime(message.timestamp) }}
+          </div>
+
+          <!-- Read indicator for own messages -->
+          @if(isOwnMessage(message)) {
+          <div
+            class="read-status"
+            [class.read]="isMessageRead(message)">
+            <i class="material-icons read-icon">{{
+              getReadStatusIcon(message)
+            }}</i>
+            <span class="read-text">{{ getReadStatusText(message) }}</span>
+          </div>
+          }
         </div>
         }
       </div>

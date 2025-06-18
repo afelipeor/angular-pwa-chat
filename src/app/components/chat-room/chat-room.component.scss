@@ -103,9 +103,7 @@
         display: flex;
         margin-bottom: 0.5rem;
         max-width: 100%;
-        width: 100%;
-
-        // Own messages (sent by current user) - align to the right
+        width: 100%; // Own messages (sent by current user) - align to the right
         &.own-message {
             justify-content: flex-end;
             text-align: right;
@@ -117,10 +115,16 @@
                 margin-left: auto;
                 margin-right: 0;
                 text-align: left; // Keep text left-aligned within the bubble
-            }
-        }
 
-        // Other users' messages - align to the left
+                .message-meta {
+                    justify-content: flex-end; // Right-align meta for own messages
+
+                    .read-status {
+                        order: -1; // Put read status before time for own messages
+                    }
+                }
+            }
+        } // Other users' messages - align to the left
         &:not(.own-message):not(.system-message) {
             justify-content: flex-start;
 
@@ -130,6 +134,10 @@
                 border-radius: 18px 18px 18px 4px;
                 margin-right: auto;
                 margin-left: 0;
+
+                .message-meta {
+                    justify-content: flex-start; // Left-align meta for other messages
+                }
             }
         }
 
@@ -173,18 +181,52 @@
                 margin-bottom: 0.25rem;
                 opacity: 0.8;
             }
-
             .message-content {
                 font-size: 0.95rem;
                 line-height: 1.4;
                 word-wrap: break-word;
             }
+            .message-meta {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 0.25rem;
+                font-size: 0.65rem;
+                opacity: 0.6;
+                gap: 0.5rem;
+            }
 
             .message-time {
-                font-size: 0.7rem;
-                margin-top: 0.25rem;
-                opacity: 0.7;
-                text-align: right;
+                font-size: 0.65rem;
+                opacity: 0.6;
+                white-space: nowrap;
+            }
+            .read-status {
+                display: flex;
+                align-items: center;
+                gap: 0.2rem;
+                font-size: 0.6rem;
+                opacity: 0.5;
+
+                .read-icon {
+                    font-size: 0.75rem;
+                    color: #999;
+                    transition: color 0.2s ease;
+                }
+
+                .read-text {
+                    font-size: 0.6rem;
+                    text-transform: capitalize;
+                }
+
+                &.read {
+                    .read-icon {
+                        color: #4caf50; // Green for read messages
+                    }
+                    .read-text {
+                        color: #4caf50;
+                    }
+                }
             }
         }
     }
