@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ChatsModule } from '../chats/chats.module';
@@ -19,7 +19,7 @@ import { SocketGateway } from './socket.gateway';
     }),
     UsersModule,
     ChatsModule,
-    MessagesModule,
+    forwardRef(() => MessagesModule),
     NotificationsModule,
   ],
   providers: [SocketGateway],

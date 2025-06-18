@@ -44,3 +44,4 @@ async function bootstrap() {
   console.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 bootstrap();
+// Restart server

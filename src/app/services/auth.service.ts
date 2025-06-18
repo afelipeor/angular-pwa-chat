@@ -112,7 +112,6 @@ export class AuthService {
         catchError(this.handleError)
       );
   }
-
   /**
    * Clear authentication state without logout navigation
    * Used internally when tokens are invalid
@@ -125,6 +124,24 @@ export class AuthService {
     this.clearStorage();
     this.currentUserSubject.next(null);
     this.tokenSubject.next(null);
+  }
+
+  /**
+   * Handle expired token scenario
+   * Show user-friendly message and redirect to login
+   */
+  handleExpiredToken(): void {
+    console.warn('Token has expired. Redirecting to login.');
+
+    // Clear auth state
+    this.clearAuth();
+
+    // Navigate to login with message
+    this.router.navigate(['/login'], {
+      queryParams: {
+        message: 'Your session has expired. Please log in again.',
+      },
+    });
   }
 
   /**
@@ -175,7 +192,6 @@ export class AuthService {
   getToken(): string | null {
     return this.tokenSubject.value || this.getStoredToken();
   }
-
   /**
    * Check if user is authenticated
    */
@@ -183,6 +199,24 @@ export class AuthService {
     const token = this.getToken();
     const user = this.getCurrentUser();
     return !!(token && user);
+  }
+
+  /**
+   * Check if token is expired (basic check without server validation)
+   */
+  isTokenExpired(): boolean {
+    const token = this.getToken();
+    if (!token) return true;
+
+    try {
+      // Basic JWT parsing (this doesn't verify signature, just checks expiration)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+      return payload.exp < currentTime;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+      return true; // If we can't parse it, consider it expired
+    }
   }
   /**
    * Verify token validity

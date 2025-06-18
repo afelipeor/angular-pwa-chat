@@ -114,6 +114,21 @@ let SocketGateway = class SocketGateway {
             return { success: false, error: error.message };
         }
     }
+    async handleNewMessage(createMessageDto, client) {
+        try {
+            console.log(`📨 Received newMessage event from ${client.user?.name}: ${createMessageDto.content}`);
+            const message = await this.messagesService.create(createMessageDto, client.userId);
+            this.server
+                .to(`chat-${createMessageDto.chatId}`)
+                .emit('newMessage', message);
+            await this.sendPushNotificationToChat(createMessageDto.chatId, client.userId, message);
+            return { success: true, message };
+        }
+        catch (error) {
+            console.error('Error handling newMessage:', error);
+            return { success: false, error: error.message };
+        }
+    }
     async handleJoinChat(data, client) {
         try {
             console.log(`User ${client.userId} trying to join chat ${data.chatId}`);
@@ -227,6 +242,17 @@ let SocketGateway = class SocketGateway {
         this.autoResponseDelay = Math.max(1000, Math.min(10000, data.delay));
         return { success: true, autoResponseDelay: this.autoResponseDelay };
     }
+    async triggerAutoResponseFromAPI(chatId, originalSenderId) {
+        if (this.autoResponseEnabled) {
+            console.log(`🤖 API triggered auto-response for chat ${chatId}, delay: ${this.autoResponseDelay}ms`);
+            setTimeout(async () => {
+                await this.sendAutoResponse(chatId, originalSenderId);
+            }, this.autoResponseDelay);
+        }
+        else {
+            console.log('🤖 Auto-response is disabled, skipping API trigger');
+        }
+    }
 };
 exports.SocketGateway = SocketGateway;
 __decorate([
@@ -241,6 +267,14 @@ __decorate([
     __metadata("design:paramtypes", [dto_1.CreateMessageDto, Object]),
     __metadata("design:returntype", Promise)
 ], SocketGateway.prototype, "handleMessage", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('newMessage'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [dto_1.CreateMessageDto, Object]),
+    __metadata("design:returntype", Promise)
+], SocketGateway.prototype, "handleNewMessage", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)('joinChat'),
     __param(0, (0, websockets_1.MessageBody)()),

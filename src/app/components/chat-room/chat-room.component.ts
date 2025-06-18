@@ -21,6 +21,7 @@ import {
   CreateMessageDto,
   MessagesService,
 } from '../../services/messages.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 import { SocketService } from '../../services/socket.service';
 import { AutoResponseToggleComponent } from '../auto-response-toggle/auto-response-toggle.component';
 
@@ -48,27 +49,24 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentUser$: Observable<User | null>;
   typingUsers: string[] = [];
   isLoading: boolean = false;
+  isSocketConnected: boolean = false;
 
   private destroy$ = new Subject<void>();
-
   readonly route = inject(ActivatedRoute);
   readonly router = inject(Router);
   readonly chatsService = inject(ChatService);
   readonly messagesService = inject(MessagesService);
   readonly authService = inject(AuthService);
   readonly socketService = inject(SocketService);
-
-  private readonly systemUser: User = {
-    _id: 'system',
-    name: 'System',
-    email: 'system@app.com',
-  };
+  readonly pushNotificationService = inject(PushNotificationService);
 
   constructor() {
     this.currentUser$ = of(this.authService.getCurrentUser());
   }
-
   ngOnInit(): void {
+    // Request notification permission on component init
+    this.pushNotificationService.requestNotificationPermission();
+
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.chatId = params['id'];
       if (this.chatId) {
@@ -76,6 +74,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loadMessages();
         this.setupSocketListeners();
         this.joinChat();
+        this.checkSocketConnection();
       }
     });
   }
@@ -101,36 +100,27 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
   sendMessage(): void {
     if (this.newMessage.trim()) {
+      console.log('🚀 Sending message:', this.newMessage.trim());
+
       const messageData: CreateMessageDto = {
         chatId: this.chatId,
         content: this.newMessage.trim(),
         type: 'text',
       };
 
+      console.log('📤 Message data:', messageData);
+
       this.messagesService
         .sendMessage(messageData)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (message) => {
-            console.log('Message sent successfully:', message);
-
-            // Check if auto-response is enabled and trigger system message after delay
-            if (
-              this.autoResponseToggle &&
-              this.autoResponseToggle.autoResponseEnabled
-            ) {
-              const delayMs = this.autoResponseToggle.delaySeconds * 1000;
-              console.log(
-                `Auto-response enabled, sending system message after ${this.autoResponseToggle.delaySeconds} seconds`
-              );
-
-              setTimeout(() => {
-                this.systemMessage();
-              }, delayMs);
-            }
+            console.log('✅ Message sent successfully:', message);
+            // The backend will automatically handle auto-responses if enabled
+            // No need to manually create system messages here
           },
           error: (error) => {
-            console.error('Error sending message:', error);
+            console.error('❌ Error sending message:', error);
           },
         });
 
@@ -155,12 +145,29 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
     }, 1000);
   }
-
-  isOwnMessage(message: Message): boolean {
+  isSystemMessage(message: Message): boolean {
+    // System messages can be identified by sender email containing 'bot' or 'chatbot'
+    // or by checking if the sender name is 'ChatBot'
+    const senderEmail = (message.sender as any)?.email?.toLowerCase() || '';
+    const senderName = (message.sender as any)?.name?.toLowerCase() || '';
     return (
-      this.authService.getCurrentUser()?._id ===
-      ((message.sender as any)._id || message.sender)
+      senderEmail.includes('bot') ||
+      senderEmail.includes('chatbot') ||
+      senderName.includes('bot') ||
+      senderName.includes('chatbot') ||
+      senderName === 'chatbot'
     );
+  }
+  isOwnMessage(message: Message): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      return false;
+    }
+
+    const currentUserId = currentUser._id;
+    const messageSenderId = (message.sender as any)?._id || message.sender;
+
+    return currentUserId === messageSenderId;
   }
 
   formatTime(timestamp: string | Date): string {
@@ -177,7 +184,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         .toUpperCase() || ''
     );
   }
-
   getTypingText(): string {
     if (this.typingUsers.length === 0) return '';
     if (this.typingUsers.length === 1)
@@ -185,6 +191,24 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `${this.typingUsers.join(', ')} are typing...`;
   }
 
+  checkSocketConnection(): void {
+    this.isSocketConnected = this.socketService.isConnected();
+
+    // Set up periodic connection check
+    setInterval(() => {
+      this.isSocketConnected = this.socketService.isConnected();
+    }, 5000); // Check every 5 seconds
+  }
+
+  reconnectSocket(): void {
+    const token = this.authService.getToken();
+    if (token && !this.authService.isTokenExpired()) {
+      this.socketService.reconnect(token);
+      this.joinChat(); // Rejoin the chat after reconnection
+    } else {
+      this.authService.handleExpiredToken();
+    }
+  }
   goBack(): void {
     this.router.navigate(['/']);
   }
@@ -200,12 +224,49 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
   private setupSocketListeners(): void {
+    console.log('🎧 Setting up socket listeners for chat:', this.chatId);
+
     this.socketService
       .on('newMessage')
       .pipe(takeUntil(this.destroy$))
       .subscribe((message: Message) => {
+        console.log('📨 Received new message via socket:', message);
         if (message.chatId === this.chatId) {
           this.messages.push(message);
+
+          // Show push notification if message is not from current user
+          const isOwnMessage = this.isOwnMessage(message);
+          console.log('🔍 Is own message check:', isOwnMessage);
+
+          if (!isOwnMessage) {
+            const senderName = (message.sender as any)?.name || 'Someone';
+            const notificationTitle = this.isGroup
+              ? `${this.chatName}`
+              : senderName;
+
+            console.log(
+              '🔔 Showing push notification for:',
+              notificationTitle,
+              message.content
+            );
+            this.pushNotificationService.showNotification(
+              notificationTitle,
+              message.content,
+              { chatId: this.chatId, messageId: message._id }
+            );
+          } else {
+            console.log('⏭️ Skipping notification for own message');
+          }
+
+          // Scroll to bottom after new message
+          setTimeout(() => this.scrollToBottom(), 100);
+        } else {
+          console.log(
+            '❓ Message not for this chat. Message chatId:',
+            message.chatId,
+            'Current chatId:',
+            this.chatId
+          );
         }
       });
 
@@ -213,12 +274,31 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       .on('userTyping')
       .pipe(takeUntil(this.destroy$))
       .subscribe((data: any) => {
+        console.log('⌨️ Typing event:', data);
         if (data.isTyping && !this.typingUsers.includes(data.userName)) {
           this.typingUsers.push(data.userName);
         } else {
           this.typingUsers = this.typingUsers.filter(
             (user) => user !== data.userName
           );
+        }
+      }); // Handle socket authentication errors (e.g., expired tokens)
+    this.socketService.authError$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((data: any) => {
+        console.error('🚨 Socket authentication error:', data);
+
+        // Check if token is expired
+        if (this.authService.isTokenExpired()) {
+          this.authService.handleExpiredToken();
+        } else {
+          // Some other auth issue, try to verify token with server
+          this.authService.verifyToken().subscribe({
+            error: (error) => {
+              console.error('Token verification failed:', error);
+              this.authService.handleExpiredToken();
+            },
+          });
         }
       });
   }
@@ -275,27 +355,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
           if (error?.message && error.message.includes('Unauthorized')) {
             this.router.navigate(['/login']);
           }
-        },
-      });
-  }
-
-  private systemMessage(): void {
-    const message: CreateMessageDto = {
-      content: 'This is a system message.',
-      chatId: this.chatId,
-      type: 'text',
-    };
-
-    this.socketService.emit('newMessage', message);
-    this.messagesService
-      .sendMessage(message)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (message) => {
-          console.log('Message sent successfully:', message);
-        },
-        error: (error) => {
-          console.error('Error sending message:', error);
         },
       });
   }

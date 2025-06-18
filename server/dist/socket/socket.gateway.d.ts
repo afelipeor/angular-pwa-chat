@@ -33,6 +33,15 @@ export declare class SocketGateway implements OnGatewayConnection, OnGatewayDisc
         error: any;
         message?: undefined;
     }>;
+    handleNewMessage(createMessageDto: CreateMessageDto, client: AuthenticatedSocket): Promise<{
+        success: boolean;
+        message: import("../messages/schemas").Message;
+        error?: undefined;
+    } | {
+        success: boolean;
+        error: any;
+        message?: undefined;
+    }>;
     handleJoinChat(data: {
         chatId: string;
     }, client: AuthenticatedSocket): Promise<{
@@ -75,5 +84,6 @@ export declare class SocketGateway implements OnGatewayConnection, OnGatewayDisc
         success: boolean;
         autoResponseDelay: number;
     };
+    triggerAutoResponseFromAPI(chatId: string, originalSenderId: string): Promise<void>;
 }
 export {};

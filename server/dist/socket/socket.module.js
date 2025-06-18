@@ -31,7 +31,7 @@ exports.SocketModule = SocketModule = __decorate([
             }),
             users_module_1.UsersModule,
             chats_module_1.ChatsModule,
-            messages_module_1.MessagesModule,
+            (0, common_1.forwardRef)(() => messages_module_1.MessagesModule),
             notifications_module_1.NotificationsModule,
         ],
         providers: [socket_gateway_1.SocketGateway],

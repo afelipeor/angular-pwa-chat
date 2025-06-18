@@ -26,11 +26,26 @@
         }
       </div>
     </div>
+
+    <!-- Connection Status Indicator -->
+    <div class="connection-status">
+      @if (!isSocketConnected) {
+      <div
+        class="connection-warning"
+        (click)="reconnectSocket()">
+        <i class="material-icons">warning</i>
+        <span>Disconnected - Tap to reconnect</span>
+      </div>
+      } @else {
+      <div class="connection-ok">
+        <i class="material-icons">wifi</i>
+      </div>
+      }
+    </div>
   </div>
 
   <!-- Auto-Response Toggle -->
   <app-auto-response-toggle></app-auto-response-toggle>
-
   <!-- Messages -->
   <div
     class="messages-container"
@@ -38,9 +53,10 @@
     @for (message of messages; track message._id) {
     <div
       class="message"
-      [class.own-message]="isOwnMessage(message)">
+      [class.own-message]="isOwnMessage(message)"
+      [class.system-message]="isSystemMessage(message)">
       <div class="message-bubble">
-        @if (isGroup && !isOwnMessage(message)) {
+        @if (isGroup && !isOwnMessage(message) && !isSystemMessage(message)) {
         <div class="sender-name">
           {{ message.sender.name }}
         </div>
@@ -63,6 +79,20 @@
       <p>No messages yet. Start the conversation!</p>
     </div>
     }
+
+    <!-- Typing indicator -->
+    @if (typingUsers.length > 0) {
+    <div class="typing-indicator">
+      <div class="typing-bubble">
+        <div class="typing-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="typing-text">{{ getTypingText() }}</div>
+      </div>
+    </div>
+    }
   </div>
 
   <!-- Message Input -->
@@ -71,11 +101,11 @@
       <button class="attachment-button">
         <i class="material-icons">attach_file</i>
       </button>
-
       <input
         type="text"
         [(ngModel)]="newMessage"
         (keyup.enter)="sendMessage()"
+        (input)="onTyping()"
         placeholder="Type a message..."
         class="input-field"
         #messageInput />

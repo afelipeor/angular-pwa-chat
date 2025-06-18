@@ -170,6 +170,41 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('newMessage')
+  async handleNewMessage(
+    @MessageBody() createMessageDto: CreateMessageDto,
+    @ConnectedSocket() client: AuthenticatedSocket
+  ) {
+    try {
+      console.log(
+        `📨 Received newMessage event from ${client.user?.name}: ${createMessageDto.content}`
+      );
+
+      // Create the message in the database
+      const message = await this.messagesService.create(
+        createMessageDto,
+        client.userId
+      );
+
+      // Emit message to all participants in the chat
+      this.server
+        .to(`chat-${createMessageDto.chatId}`)
+        .emit('newMessage', message);
+
+      // Send push notification to other participants
+      await this.sendPushNotificationToChat(
+        createMessageDto.chatId,
+        client.userId,
+        message
+      );
+
+      return { success: true, message };
+    } catch (error) {
+      console.error('Error handling newMessage:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   @SubscribeMessage('joinChat') async handleJoinChat(
     @MessageBody() data: { chatId: string },
     @ConnectedSocket() client: AuthenticatedSocket
@@ -371,12 +406,27 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, autoResponseEnabled: this.autoResponseEnabled };
   }
 
-  @SubscribeMessage('setAutoResponseDelay')
-  handleSetAutoResponseDelay(
+  @SubscribeMessage('setAutoResponseDelay') handleSetAutoResponseDelay(
     @MessageBody() data: { delay: number },
     @ConnectedSocket() client: AuthenticatedSocket
   ) {
     this.autoResponseDelay = Math.max(1000, Math.min(10000, data.delay)); // Between 1-10 seconds
     return { success: true, autoResponseDelay: this.autoResponseDelay };
+  }
+
+  /**
+   * Trigger auto-response from HTTP API (used by MessagesController)
+   */
+  async triggerAutoResponseFromAPI(chatId: string, originalSenderId: string) {
+    if (this.autoResponseEnabled) {
+      console.log(
+        `🤖 API triggered auto-response for chat ${chatId}, delay: ${this.autoResponseDelay}ms`
+      );
+      setTimeout(async () => {
+        await this.sendAutoResponse(chatId, originalSenderId);
+      }, this.autoResponseDelay);
+    } else {
+      console.log('🤖 Auto-response is disabled, skipping API trigger');
+    }
   }
 }

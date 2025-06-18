@@ -91,7 +91,6 @@ export class PushNotificationService {
     }
     return btoa(binary);
   }
-
   /**
    * Show a notification to the user
    * @param title - Notification title
@@ -103,25 +102,53 @@ export class PushNotificationService {
     body: string,
     data?: Record<string, unknown>
   ): void {
+    console.log('Attempting to show notification:', title, body);
+
     if (!('Notification' in window)) {
       console.warn('Notifications are not supported in this browser');
       return;
     }
 
-    if (Notification.permission === 'granted') {
-      const notification = new Notification(title, {
-        body,
-        icon: '/assets/icons/icon-192x192.png',
-        badge: '/assets/icons/icon-72x72.png',
-        data,
-      });
+    console.log('Notification permission:', Notification.permission);
 
-      // Auto-close notification after 5 seconds
-      setTimeout(() => {
-        notification.close();
-      }, 5000);
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification(title, {
+          body,
+          icon: '/assets/icons/icon-192x192.png',
+          badge: '/assets/icons/icon-72x72.png',
+          data,
+          requireInteraction: false, // Auto dismiss
+          silent: false,
+        });
+
+        console.log('Notification created successfully:', notification);
+
+        // Auto-close notification after 5 seconds
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
+
+        // Handle notification click
+        notification.onclick = () => {
+          console.log('Notification clicked');
+          window.focus();
+          notification.close();
+        };
+      } catch (error) {
+        console.error('Error creating notification:', error);
+      }
+    } else if (Notification.permission === 'default') {
+      console.warn(
+        'Notification permission not requested yet, requesting now...'
+      );
+      this.requestNotificationPermission().then((permission) => {
+        if (permission === 'granted') {
+          this.showNotification(title, body, data);
+        }
+      });
     } else {
-      console.warn('Notification permission not granted');
+      console.warn('Notification permission denied');
     }
   }
 

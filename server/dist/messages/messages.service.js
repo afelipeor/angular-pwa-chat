@@ -33,11 +33,12 @@ let MessagesService = class MessagesService {
         });
         const savedMessage = await createdMessage.save();
         await this.chatsService.incrementUnreadCount(createMessageDto.chatId, senderId);
-        return this.messageModel
+        const populatedMessage = await this.messageModel
             .findById(savedMessage._id)
             .populate('sender', 'name email avatar')
             .populate('chat', 'name participants')
             .exec();
+        return this.transformMessage(populatedMessage);
     }
     async createBotMessage(createMessageDto, botUserId) {
         const createdMessage = new this.messageModel({
@@ -47,16 +48,34 @@ let MessagesService = class MessagesService {
             readBy: [],
         });
         const savedMessage = await createdMessage.save();
-        return this.messageModel
+        const populatedMessage = await this.messageModel
             .findById(savedMessage._id)
             .populate('sender', 'name email avatar')
             .populate('chat', 'name participants')
             .exec();
+        return this.transformMessage(populatedMessage);
+    }
+    transformMessage(message) {
+        if (!message)
+            return message;
+        const transformed = message.toObject ? message.toObject() : message;
+        if (transformed.chat) {
+            if (typeof transformed.chat === 'string') {
+                transformed.chatId = transformed.chat;
+            }
+            else if (transformed.chat._id) {
+                transformed.chatId = transformed.chat._id.toString();
+            }
+            else if (transformed.chat.toString) {
+                transformed.chatId = transformed.chat.toString();
+            }
+        }
+        return transformed;
     }
     async findByChatId(chatId, userId, page = 1, limit = 50) {
         await this.chatsService.findOne(chatId, userId);
         const skip = (page - 1) * limit;
-        return this.messageModel
+        const messages = await this.messageModel
             .find({ chat: new mongoose_2.Types.ObjectId(chatId) })
             .populate('sender', 'name email avatar')
             .populate('readBy', 'name email')
@@ -64,6 +83,7 @@ let MessagesService = class MessagesService {
             .skip(skip)
             .limit(limit)
             .exec();
+        return messages.map((message) => this.transformMessage(message));
     }
     async markAsRead(messageId, userId) {
         const message = await this.messageModel.findById(messageId);

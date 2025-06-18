@@ -1,18 +1,20 @@
-import
-  {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Patch,
-    Post,
-    Query,
-    Request,
-    UseGuards,
-  } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+  forwardRef,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SocketGateway } from '../socket/socket.gateway';
 import { CreateMessageDto, UpdateMessageDto } from './dto';
 import { MessagesService } from './messages.service';
 
@@ -21,12 +23,30 @@ import { MessagesService } from './messages.service';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
-
+  constructor(
+    private readonly messagesService: MessagesService,
+    @Inject(forwardRef(() => SocketGateway))
+    private readonly socketGateway: SocketGateway
+  ) {}
   @Post()
   @ApiResponse({ status: 201, description: 'Message sent successfully' })
-  create(@Body() createMessageDto: CreateMessageDto, @Request() req) {
-    return this.messagesService.create(createMessageDto, req.user.userId);
+  async create(@Body() createMessageDto: CreateMessageDto, @Request() req) {
+    console.log(
+      `📨 HTTP API: Received message from user ${req.user.userId}: ${createMessageDto.content}`
+    );
+
+    const message = await this.messagesService.create(
+      createMessageDto,
+      req.user.userId
+    );
+
+    // Trigger auto-response if enabled (call the socket gateway method)
+    await this.socketGateway.triggerAutoResponseFromAPI(
+      createMessageDto.chatId,
+      req.user.userId
+    );
+
+    return message;
   }
 
   @Get('chat/:chatId')
@@ -37,7 +57,7 @@ export class MessagesController {
     @Param('chatId') chatId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-    @Request() req?: any,
+    @Request() req?: any
   ) {
     return this.messagesService.findByChatId(
       chatId,
@@ -61,7 +81,11 @@ export class MessagesController {
 
   @Patch(':id')
   @ApiResponse({ status: 200, description: 'Message updated successfully' })
-  update(@Param('id') id: string, @Body() updateMessageDto: UpdateMessageDto, @Request() req) {
+  update(
+    @Param('id') id: string,
+    @Body() updateMessageDto: UpdateMessageDto,
+    @Request() req
+  ) {
     return this.messagesService.update(id, updateMessageDto, req.user.userId);
   }
 

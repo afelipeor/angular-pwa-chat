@@ -16,14 +16,19 @@ exports.MessagesController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const socket_gateway_1 = require("../socket/socket.gateway");
 const dto_1 = require("./dto");
 const messages_service_1 = require("./messages.service");
 let MessagesController = class MessagesController {
-    constructor(messagesService) {
+    constructor(messagesService, socketGateway) {
         this.messagesService = messagesService;
+        this.socketGateway = socketGateway;
     }
-    create(createMessageDto, req) {
-        return this.messagesService.create(createMessageDto, req.user.userId);
+    async create(createMessageDto, req) {
+        console.log(`📨 HTTP API: Received message from user ${req.user.userId}: ${createMessageDto.content}`);
+        const message = await this.messagesService.create(createMessageDto, req.user.userId);
+        await this.socketGateway.triggerAutoResponseFromAPI(createMessageDto.chatId, req.user.userId);
+        return message;
     }
     findByChatId(chatId, page, limit, req) {
         return this.messagesService.findByChatId(chatId, req.user.userId, page || 1, limit || 50);
@@ -49,7 +54,7 @@ __decorate([
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [dto_1.CreateMessageDto, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], MessagesController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)('chat/:chatId'),
@@ -106,6 +111,8 @@ exports.MessagesController = MessagesController = __decorate([
     (0, common_1.Controller)('messages'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    __metadata("design:paramtypes", [messages_service_1.MessagesService])
+    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => socket_gateway_1.SocketGateway))),
+    __metadata("design:paramtypes", [messages_service_1.MessagesService,
+        socket_gateway_1.SocketGateway])
 ], MessagesController);
 //# sourceMappingURL=messages.controller.js.map

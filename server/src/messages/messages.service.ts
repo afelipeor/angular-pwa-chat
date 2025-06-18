@@ -28,7 +28,6 @@ export class MessagesService {
       sender: new Types.ObjectId(senderId),
       readBy: [new Types.ObjectId(senderId)], // Mark as read by sender
     });
-
     const savedMessage = await createdMessage.save();
 
     // Increment unread count for other participants
@@ -37,11 +36,13 @@ export class MessagesService {
       senderId
     );
 
-    return this.messageModel
+    const populatedMessage = await this.messageModel
       .findById(savedMessage._id)
       .populate('sender', 'name email avatar')
       .populate('chat', 'name participants')
       .exec();
+
+    return this.transformMessage(populatedMessage);
   }
 
   async createBotMessage(
@@ -59,11 +60,31 @@ export class MessagesService {
     const savedMessage = await createdMessage.save(); // Don't increment unread count for bot messages
     // await this.chatsService.incrementUnreadCount(createMessageDto.chatId, botUserId);
 
-    return this.messageModel
+    const populatedMessage = await this.messageModel
       .findById(savedMessage._id)
       .populate('sender', 'name email avatar')
       .populate('chat', 'name participants')
       .exec();
+
+    return this.transformMessage(populatedMessage);
+  }
+  private transformMessage(message: any): any {
+    if (!message) return message;
+
+    const transformed = message.toObject ? message.toObject() : message;
+
+    // Add chatId field for frontend compatibility
+    if (transformed.chat) {
+      if (typeof transformed.chat === 'string') {
+        transformed.chatId = transformed.chat;
+      } else if (transformed.chat._id) {
+        transformed.chatId = transformed.chat._id.toString();
+      } else if (transformed.chat.toString) {
+        transformed.chatId = transformed.chat.toString();
+      }
+    }
+
+    return transformed;
   }
 
   async findByChatId(
@@ -77,7 +98,7 @@ export class MessagesService {
 
     const skip = (page - 1) * limit;
 
-    return this.messageModel
+    const messages = await this.messageModel
       .find({ chat: new Types.ObjectId(chatId) })
       .populate('sender', 'name email avatar')
       .populate('readBy', 'name email')
@@ -85,6 +106,8 @@ export class MessagesService {
       .skip(skip)
       .limit(limit)
       .exec();
+
+    return messages.map((message) => this.transformMessage(message));
   }
 
   async markAsRead(messageId: string, userId: string): Promise<Message> {

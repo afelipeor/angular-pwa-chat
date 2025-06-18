@@ -6,7 +6,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LoginCredentials } from '../../models';
 import { AuthService } from '../../services/auth.service';
 
@@ -21,11 +21,13 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  infoMessage = ''; // For showing session expired message
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -35,16 +37,26 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Redirect if already logged in
-    if (this.authService.isAuthenticated()) {
+    // Check for session expired message
+    this.route.queryParams.subscribe((params) => {
+      if (params['message']) {
+        this.infoMessage = params['message'];
+      }
+    });
+
+    // Redirect if already logged in (and token is not expired)
+    if (
+      this.authService.isAuthenticated() &&
+      !this.authService.isTokenExpired()
+    ) {
       this.router.navigate(['/']);
     }
   }
-
   onSubmit(): void {
     if (this.loginForm.valid) {
       this.isLoading = true;
       this.errorMessage = '';
+      this.infoMessage = '';
 
       const credentials: LoginCredentials = {
         email: this.loginForm.value.email,
@@ -56,7 +68,8 @@ export class LoginComponent implements OnInit {
         .subscribe({
           next: (response) => {
             console.log('Login successful:', response);
-            this.router.navigate(['/']);
+            // Clear any query params when redirecting after successful login
+            this.router.navigate(['/'], { replaceUrl: true });
           },
           error: (error) => {
             console.error('Login error:', error);
