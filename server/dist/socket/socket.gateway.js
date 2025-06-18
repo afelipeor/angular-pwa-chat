@@ -95,12 +95,14 @@ let SocketGateway = class SocketGateway {
     }
     async handleMessage(createMessageDto, client) {
         try {
+            console.log(`📨 Received message from ${client.user?.name}: ${createMessageDto.content}`);
             const message = await this.messagesService.create(createMessageDto, client.userId);
             this.server
                 .to(`chat-${createMessageDto.chatId}`)
                 .emit('newMessage', message);
             await this.sendPushNotificationToChat(createMessageDto.chatId, client.userId, message);
             if (this.autoResponseEnabled) {
+                console.log(`🤖 Auto-response is enabled, will send response in ${this.autoResponseDelay}ms`);
                 setTimeout(async () => {
                     await this.sendAutoResponse(createMessageDto.chatId, client.userId);
                 }, this.autoResponseDelay);
@@ -165,20 +167,24 @@ let SocketGateway = class SocketGateway {
     }
     async sendAutoResponse(chatId, originalSenderId) {
         try {
+            console.log(`🤖 Sending auto-response to chat ${chatId} from user ${originalSenderId}`);
             const randomMessage = this.autoResponseMessages[Math.floor(Math.random() * this.autoResponseMessages.length)];
+            console.log(`🤖 Selected auto-response message: ${randomMessage}`);
             const autoResponseDto = {
                 chatId,
                 content: randomMessage,
                 type: 'text',
             };
             const botUser = await this.getOrCreateBotUser();
+            console.log(`🤖 Bot user: ${botUser.name} (${botUser._id})`);
             const autoMessage = await this.messagesService.createBotMessage(autoResponseDto, botUser._id.toString());
+            console.log(`🤖 Created auto-response message: ${autoMessage._id}`);
             this.server.to(`chat-${chatId}`).emit('newMessage', autoMessage);
             await this.notificationsService.sendNotificationToUser(originalSenderId, 'New message from ChatBot', randomMessage, { chatId, messageId: autoMessage._id });
-            console.log(`Auto-response sent to chat ${chatId}: ${randomMessage}`);
+            console.log(`🤖 Auto-response sent to chat ${chatId}: ${randomMessage}`);
         }
         catch (error) {
-            console.error('Error sending auto-response:', error);
+            console.error('🤖 Error sending auto-response:', error);
         }
     }
     async getOrCreateBotUser() {

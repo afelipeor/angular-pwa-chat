@@ -127,13 +127,15 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(`User ${client.userId} disconnected`);
     }
   }
-
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @MessageBody() createMessageDto: CreateMessageDto,
     @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
+      console.log(
+        `📨 Received message from ${client.user?.name}: ${createMessageDto.content}`
+      );
       const message = await this.messagesService.create(
         createMessageDto,
         client.userId
@@ -153,6 +155,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Trigger auto-response after a delay
       if (this.autoResponseEnabled) {
+        console.log(
+          `🤖 Auto-response is enabled, will send response in ${this.autoResponseDelay}ms`
+        );
         setTimeout(async () => {
           await this.sendAutoResponse(createMessageDto.chatId, client.userId);
         }, this.autoResponseDelay);
@@ -249,14 +254,18 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { success: false, error: error.message };
     }
   }
-
   private async sendAutoResponse(chatId: string, originalSenderId: string) {
     try {
+      console.log(
+        `🤖 Sending auto-response to chat ${chatId} from user ${originalSenderId}`
+      );
       // Get a random auto-response message
       const randomMessage =
         this.autoResponseMessages[
           Math.floor(Math.random() * this.autoResponseMessages.length)
         ];
+
+      console.log(`🤖 Selected auto-response message: ${randomMessage}`);
 
       // Create auto-response message DTO
       const autoResponseDto: CreateMessageDto = {
@@ -266,10 +275,17 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
 
       // Get or create bot user
-      const botUser = await this.getOrCreateBotUser(); // Create the auto-response message using the bot-specific method
+      const botUser = await this.getOrCreateBotUser();
+      console.log(`🤖 Bot user: ${botUser.name} (${botUser._id})`);
+
+      // Create the auto-response message using the bot-specific method
       const autoMessage = await this.messagesService.createBotMessage(
         autoResponseDto,
         botUser._id.toString()
+      );
+
+      console.log(
+        `🤖 Created auto-response message: ${(autoMessage as any)._id}`
       );
 
       // Emit the auto-response to all chat participants
@@ -283,9 +299,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         { chatId, messageId: (autoMessage as any)._id }
       );
 
-      console.log(`Auto-response sent to chat ${chatId}: ${randomMessage}`);
+      console.log(`🤖 Auto-response sent to chat ${chatId}: ${randomMessage}`);
     } catch (error) {
-      console.error('Error sending auto-response:', error);
+      console.error('🤖 Error sending auto-response:', error);
     }
   }
 
