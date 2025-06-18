@@ -103,21 +103,25 @@
         display: flex;
         margin-bottom: 0.5rem;
         max-width: 100%;
+        width: 100%;
 
         // Own messages (sent by current user) - align to the right
         &.own-message {
             justify-content: flex-end;
+            text-align: right;
 
             .message-bubble {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 border-radius: 18px 18px 4px 18px;
                 margin-left: auto;
+                margin-right: 0;
+                text-align: left; // Keep text left-aligned within the bubble
             }
         }
 
         // Other users' messages - align to the left
-        &:not(.own-message) {
+        &:not(.own-message):not(.system-message) {
             justify-content: flex-start;
 
             .message-bubble {
@@ -125,13 +129,21 @@
                 color: #333;
                 border-radius: 18px 18px 18px 4px;
                 margin-right: auto;
+                margin-left: 0;
             }
+        }
 
-            // System/bot messages - special styling
-            &.system-message .message-bubble {
+        // System/bot messages - special styling (align to left like other messages)
+        &.system-message {
+            justify-content: flex-start;
+
+            .message-bubble {
                 background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
                 color: white;
                 border-left: 4px solid #2e7d32;
+                border-radius: 18px 18px 18px 4px;
+                margin-right: auto;
+                margin-left: 0;
                 position: relative;
 
                 &::before {

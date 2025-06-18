@@ -176,53 +176,6 @@
   }
 }
 
-// Logout Modal Styles
-.logout-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-
-  .logout-modal-content {
-    position: relative;
-    background: white;
-    border-radius: 12px;
-    max-width: 500px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-
-    .close-modal-btn {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      z-index: 1001;
-      padding: 0.5rem;
-      border-radius: 50%;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background: rgba(0, 0, 0, 0.1);
-      }
-
-      i {
-        font-size: 1.5rem;
-        color: #666;
-      }
-    }
-  }
-}
-
 @media (max-width: 768px) {
   .header-menu {
     .dropdown-menu {
@@ -235,13 +188,6 @@
       border-radius: 16px 16px 0 0;
       max-height: 80vh;
       overflow-y: auto;
-    }
-  }
-
-  .logout-modal-overlay {
-    .logout-modal-content {
-      margin: 1rem;
-      max-height: 80vh;
     }
   }
 }

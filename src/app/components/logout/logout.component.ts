@@ -22,17 +22,13 @@ export class LogoutComponent {
 
   private authService = inject(AuthService);
   private router = inject(Router);
-
   logout(): void {
     try {
       this.authService.logout();
+      // Note: AuthService.logout() already handles navigation to /login
     } catch (error) {
-      // Optionally log the error or handle it gracefully
-    }
-    try {
-      this.router.navigate(['/']);
-    } catch (error) {
-      // Optionally log the error or handle it gracefully
+      // If logout fails, still try to navigate to login
+      this.router.navigate(['/login']);
     }
   }
 

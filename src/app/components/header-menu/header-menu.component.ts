@@ -4,12 +4,11 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { User } from '../../models';
 import { AuthService } from '../../services/auth.service';
-import { LogoutComponent } from '../logout/logout.component';
 
 @Component({
   selector: 'app-header-menu',
   standalone: true,
-  imports: [CommonModule, LogoutComponent],
+  imports: [CommonModule],
   templateUrl: './header-menu.component.html',
   styleUrls: ['./header-menu.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,7 +16,6 @@ import { LogoutComponent } from '../logout/logout.component';
 export class HeaderMenuComponent {
   currentUser$: Observable<User | null>;
   isMenuOpen = false;
-  showLogoutModal = false;
 
   private authService = inject(AuthService);
   private router = inject(Router);
@@ -29,24 +27,14 @@ export class HeaderMenuComponent {
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
-
   closeMenu(): void {
     this.isMenuOpen = false;
   }
 
-  showLogout(): void {
-    this.showLogoutModal = true;
-    this.closeMenu();
-  }
-
-  hideLogout(): void {
-    this.showLogoutModal = false;
-  }
-
   logout(): void {
     this.authService.logout();
-    this.router.navigate(['/']);
     this.closeMenu();
+    // Note: AuthService.logout() already handles navigation to /login
   }
 
   getAvatarInitials(name: string): string {

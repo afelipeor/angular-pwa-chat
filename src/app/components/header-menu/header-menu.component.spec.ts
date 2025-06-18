@@ -8,8 +8,8 @@ import { HeaderMenuComponent } from './header-menu.component';
 describe('HeaderMenuComponent', () => {
   let component: HeaderMenuComponent;
   let fixture: ComponentFixture<HeaderMenuComponent>;
-  let mockAuthService: jest.Mocked<AuthService>;
-  let mockRouter: jest.Mocked<Router>;
+  let mockAuthService: jasmine.SpyObj<AuthService>;
+  let mockRouter: jasmine.SpyObj<Router>;
 
   const mockUser: User = {
     id: '1',
@@ -71,9 +71,8 @@ describe('HeaderMenuComponent', () => {
     it('should start with menu closed', () => {
       expect(component.isMenuOpen).toBe(false);
     });
-
-    it('should start with logout modal hidden', () => {
-      expect(component.showLogoutModal).toBe(false);
+    it('should initialize with closed menu', () => {
+      expect(component.isMenuOpen).toBe(false);
     });
 
     it('should emit current user from auth service', (done) => {

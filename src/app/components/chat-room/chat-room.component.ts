@@ -160,14 +160,33 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
   isOwnMessage(message: Message): boolean {
     const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) {
+    if (!currentUser || !currentUser._id) {
+      console.log('❌ No current user found or missing ID');
       return false;
     }
 
     const currentUserId = currentUser._id;
-    const messageSenderId = (message.sender as any)?._id || message.sender;
 
-    return currentUserId === messageSenderId;
+    // Handle different possible sender structures
+    let messageSenderId: string;
+    if (typeof message.sender === 'string') {
+      messageSenderId = message.sender;
+    } else if (message.sender && typeof message.sender === 'object') {
+      messageSenderId = (message.sender as any)._id;
+    } else {
+      console.log('❌ Invalid sender structure:', message.sender);
+      return false;
+    }
+
+    const isOwn = currentUserId === messageSenderId;
+    console.log('🔍 Message ownership check:', {
+      currentUserId,
+      messageSenderId,
+      messageContent: message.content.substring(0, 30) + '...',
+      isOwn,
+    });
+
+    return isOwn;
   }
 
   formatTime(timestamp: string | Date): string {
