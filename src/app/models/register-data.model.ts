@@ -1,5 +1,5 @@
-import { User } from './user.model';
+import { BaseUser } from './user.model';
 
-export interface RegisterData extends User {
+export interface RegisterData extends BaseUser {
   password: string;
 }

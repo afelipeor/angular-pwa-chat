@@ -27,14 +27,21 @@ export class AuthService {
     this.initializeAuth();
   }
   private initializeAuth(): void {
+    console.log('🔐 Initializing auth service...');
     const token = this.getStoredToken();
     const user = this.getStoredUser();
 
+    console.log('🔐 Found stored token:', token ? 'YES' : 'NO');
+    console.log('🔐 Found stored user:', user);
+
     if (token && user) {
+      console.log('🔐 Setting user and token from storage');
       this.currentUserSubject.next(user);
       this.tokenSubject.next(token);
       // Establish socket connection for authenticated user
       this.socketService.connect(token);
+    } else {
+      console.log('🔐 No valid authentication found in storage');
     }
   }
 
@@ -86,9 +93,11 @@ export class AuthService {
       .post<AuthResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap((response) => {
+          console.log('🔐 Login successful, response:', response);
           this.setStoredAuth(response.user, response.token, remember);
           this.currentUserSubject.next(response.user);
           this.tokenSubject.next(response.token);
+          console.log('🔐 User set in currentUserSubject:', response.user);
           // Establish socket connection for authenticated user
           this.socketService.connect(response.token);
         }),
@@ -178,12 +187,32 @@ export class AuthService {
     // Navigate to login
     this.router.navigate(['/login']);
   }
-
   /**
    * Get current user
    */
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+    let currentUser = this.currentUserSubject.value;
+    console.log(
+      '🔐 getCurrentUser called, currentUserSubject value:',
+      currentUser
+    );
+
+    // If no user in subject, try to get from storage
+    if (!currentUser) {
+      console.log('🔐 No user in subject, trying to get from storage...');
+      const storedUser = this.getStoredUser();
+      if (storedUser) {
+        console.log(
+          '🔐 Found user in storage, setting in subject:',
+          storedUser
+        );
+        this.currentUserSubject.next(storedUser);
+        currentUser = storedUser;
+      }
+    }
+
+    console.log('🔐 getCurrentUser returning:', currentUser);
+    return currentUser;
   }
 
   /**

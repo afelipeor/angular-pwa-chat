@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Observable, of, Subject, takeUntil } from 'rxjs';
+import { Observable, of, Subject, take, takeUntil } from 'rxjs';
 import { MessagesResponse } from '../../models';
 import { Chat } from '../../models/chat.model';
 import { Message } from '../../models/message.model';
@@ -159,14 +159,48 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     );
   }
   isOwnMessage(message: Message): boolean {
+    // Debug: Check what's in localStorage
+    const storedUser =
+      localStorage.getItem('current_user') ||
+      sessionStorage.getItem('current_user');
+    console.log('🔍 Stored user in localStorage:', storedUser);
+
+    // Check if auth service has current user
     const currentUser = this.authService.getCurrentUser();
-    if (!currentUser || !currentUser._id) {
-      console.log('❌ No current user found or missing ID');
+    console.log('🔍 Current user from auth service:', currentUser);
+
+    if (!currentUser) {
+      console.log('❌ No current user found - user may not be logged in');
+      // Try to get user from observable as fallback
+      let userFromObservable: any = null;
+      this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
+        userFromObservable = user;
+      });
+      console.log('🔍 User from observable:', userFromObservable);
+
+      if (!userFromObservable) {
+        return false;
+      }
+      // Use the user from observable as fallback
+      const userId = userFromObservable._id || userFromObservable.id;
+      if (!userId) {
+        console.log('❌ User from observable missing ID:', userFromObservable);
+        return false;
+      }
+      return this.compareUserIds(userId, message);
+    }
+
+    // Check for different possible ID fields
+    const userId = currentUser._id || (currentUser as any).id;
+    if (!userId) {
+      console.log('❌ Current user missing _id or id:', currentUser);
       return false;
     }
 
-    const currentUserId = currentUser._id;
+    return this.compareUserIds(userId, message);
+  }
 
+  private compareUserIds(currentUserId: string, message: Message): boolean {
     // Handle different possible sender structures
     let messageSenderId: string;
     if (typeof message.sender === 'string') {
