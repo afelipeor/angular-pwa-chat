@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import {
   AfterViewChecked,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   inject,
@@ -36,6 +38,7 @@ import { AutoResponseToggleComponent } from '../auto-response-toggle/auto-respon
   ],
   templateUrl: './chat-room.component.html',
   styleUrls: ['./chat-room.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
@@ -59,6 +62,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   readonly authService = inject(AuthService);
   readonly socketService = inject(SocketService);
   readonly pushNotificationService = inject(PushNotificationService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   constructor() {
     this.currentUser$ = of(this.authService.getCurrentUser());
@@ -66,6 +70,16 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   ngOnInit(): void {
     // Request notification permission on component init
     this.pushNotificationService.requestNotificationPermission();
+
+    // Debug: Check user authentication state immediately
+    console.log('🔐 ChatRoom init - checking auth state...');
+    const currentUser = this.authService.getCurrentUser();
+    console.log('🔐 Current user on init:', currentUser);
+
+    // Also check observable
+    this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
+      console.log('🔐 User from observable on init:', user);
+    });
 
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.chatId = params['id'];
@@ -102,6 +116,10 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.newMessage.trim()) {
       console.log('🚀 Sending message:', this.newMessage.trim());
 
+      // Debug: Check auth state right before sending
+      const authCheck = this.authService.getCurrentUser();
+      console.log('🔐 Auth state before sending:', authCheck);
+
       const messageData: CreateMessageDto = {
         chatId: this.chatId,
         content: this.newMessage.trim(),
@@ -110,14 +128,37 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
       console.log('📤 Message data:', messageData);
 
+      // Store the message content to check ownership later
+      const messageContent = this.newMessage.trim();
+
       this.messagesService
         .sendMessage(messageData)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (message) => {
             console.log('✅ Message sent successfully:', message);
-            // The backend will automatically handle auto-responses if enabled
-            // No need to manually create system messages here
+            console.log(
+              '🔍 Checking if this is our message:',
+              messageContent,
+              'vs',
+              message.content
+            );
+            console.log('🔍 Message sender:', message.sender);
+
+            // For debugging, let's always add the message and let the template handle ownership
+            const existingMessage = this.messages.find(
+              (m) => m._id === message._id
+            );
+            if (!existingMessage) {
+              console.log('➕ Adding sent message to local array');
+              this.messages.push(message);
+              this.cdr.markForCheck();
+              setTimeout(() => this.scrollToBottom(), 100);
+
+              // Test ownership immediately
+              const ownership = this.isOwnMessage(message);
+              console.log('🔍 Immediate ownership check result:', ownership);
+            }
           },
           error: (error) => {
             console.error('❌ Error sending message:', error);
@@ -159,64 +200,59 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     );
   }
   isOwnMessage(message: Message): boolean {
-    // Debug: Check what's in localStorage
-    const storedUser =
-      localStorage.getItem('current_user') ||
-      sessionStorage.getItem('current_user');
-    console.log('🔍 Stored user in localStorage:', storedUser);
+    // Get current user - try multiple methods
+    let currentUser = this.authService.getCurrentUser();
 
-    // Check if auth service has current user
-    const currentUser = this.authService.getCurrentUser();
-    console.log('🔍 Current user from auth service:', currentUser);
-
+    // If no user from service, try from localStorage directly
     if (!currentUser) {
-      console.log('❌ No current user found - user may not be logged in');
-      // Try to get user from observable as fallback
-      let userFromObservable: any = null;
-      this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
-        userFromObservable = user;
-      });
-      console.log('🔍 User from observable:', userFromObservable);
-
-      if (!userFromObservable) {
-        return false;
+      const storedUserStr =
+        localStorage.getItem('current_user') ||
+        sessionStorage.getItem('current_user');
+      if (storedUserStr) {
+        try {
+          currentUser = JSON.parse(storedUserStr);
+          console.log('🔍 Retrieved user from localStorage:', currentUser);
+        } catch (e) {
+          console.error('❌ Error parsing stored user:', e);
+        }
       }
-      // Use the user from observable as fallback
-      const userId = userFromObservable._id || userFromObservable.id;
-      if (!userId) {
-        console.log('❌ User from observable missing ID:', userFromObservable);
-        return false;
-      }
-      return this.compareUserIds(userId, message);
     }
 
-    // Check for different possible ID fields
-    const userId = currentUser._id || (currentUser as any).id;
-    if (!userId) {
-      console.log('❌ Current user missing _id or id:', currentUser);
+    if (!currentUser) {
+      console.log('❌ No current user found anywhere');
       return false;
     }
 
-    return this.compareUserIds(userId, message);
-  }
+    // Get current user ID
+    const currentUserId = currentUser._id || (currentUser as any).id;
+    if (!currentUserId) {
+      console.log('❌ Current user has no ID:', currentUser);
+      return false;
+    }
 
-  private compareUserIds(currentUserId: string, message: Message): boolean {
-    // Handle different possible sender structures
+    // Get message sender ID
     let messageSenderId: string;
+
     if (typeof message.sender === 'string') {
       messageSenderId = message.sender;
     } else if (message.sender && typeof message.sender === 'object') {
-      messageSenderId = (message.sender as any)._id;
+      messageSenderId =
+        (message.sender as any)._id || (message.sender as any).id;
     } else {
-      console.log('❌ Invalid sender structure:', message.sender);
+      console.log('❌ Invalid message sender:', message.sender);
+      return false;
+    }
+
+    if (!messageSenderId) {
+      console.log('❌ Message sender has no ID:', message.sender);
       return false;
     }
 
     const isOwn = currentUserId === messageSenderId;
-    console.log('🔍 Message ownership check:', {
+    console.log('🔍 Message ownership:', {
       currentUserId,
       messageSenderId,
-      messageContent: message.content.substring(0, 30) + '...',
+      content: message.content.substring(0, 20) + '...',
       isOwn,
     });
 
@@ -284,8 +320,26 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       .pipe(takeUntil(this.destroy$))
       .subscribe((message: Message) => {
         console.log('📨 Received new message via socket:', message);
+        console.log('🔍 Message sender via WebSocket:', message.sender);
+
         if (message.chatId === this.chatId) {
-          this.messages.push(message);
+          // Check if message already exists to avoid duplicates
+          const existingMessage = this.messages.find(
+            (m) => m._id === message._id
+          );
+          if (!existingMessage) {
+            this.messages.push(message);
+            console.log('➕ Added new message via WebSocket');
+
+            // Test ownership immediately for WebSocket messages
+            const ownership = this.isOwnMessage(message);
+            console.log('🔍 WebSocket message ownership:', ownership);
+          } else {
+            console.log('⏭️ Message already exists, skipping duplicate');
+          }
+
+          // Trigger change detection to update the view
+          this.cdr.markForCheck();
 
           // Show push notification if message is not from current user
           const isOwnMessage = this.isOwnMessage(message);
@@ -311,7 +365,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
             console.log('⏭️ Skipping notification for own message');
           }
 
-          // Scroll to bottom after new message
+          // Scroll to bottom after new message and change detection
           setTimeout(() => this.scrollToBottom(), 100);
         } else {
           console.log(
@@ -335,6 +389,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
             (user) => user !== data.userName
           );
         }
+        this.cdr.markForCheck();
       }); // Handle socket authentication errors (e.g., expired tokens)
     this.socketService.authError$
       .pipe(takeUntil(this.destroy$))
@@ -373,10 +428,12 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         next: (chat: Chat) => {
           this.chat = chat;
           this.isLoading = false;
+          this.cdr.markForCheck();
         },
         error: (error: Error) => {
           console.error('Error loading chat:', error);
           this.isLoading = false;
+          this.cdr.markForCheck();
           this.router.navigate(['/']);
         },
       });
@@ -399,8 +456,11 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
           ) {
             messages = (response as MessagesResponse).messages;
           }
-
           this.messages = messages; // Show messages in the order received (oldest first)
+          console.log('📥 Loaded messages:', messages.length);
+          this.cdr.markForCheck();
+          // Scroll to bottom after loading messages
+          setTimeout(() => this.scrollToBottom(), 100);
         },
         error: (error: any) => {
           console.error('Error loading messages:', error);
