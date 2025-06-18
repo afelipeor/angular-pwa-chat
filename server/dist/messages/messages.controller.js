@@ -25,7 +25,6 @@ let MessagesController = class MessagesController {
         this.socketGateway = socketGateway;
     }
     async create(createMessageDto, req) {
-        console.log(`📨 HTTP API: Received message from user ${req.user.userId}: ${createMessageDto.content}`);
         const message = await this.messagesService.create(createMessageDto, req.user.userId);
         await this.socketGateway.triggerAutoResponseFromAPI(createMessageDto.chatId, req.user.userId);
         return message;

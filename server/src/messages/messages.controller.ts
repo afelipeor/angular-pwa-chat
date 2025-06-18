@@ -31,10 +31,6 @@ export class MessagesController {
   @Post()
   @ApiResponse({ status: 201, description: 'Message sent successfully' })
   async create(@Body() createMessageDto: CreateMessageDto, @Request() req) {
-    console.log(
-      `📨 HTTP API: Received message from user ${req.user.userId}: ${createMessageDto.content}`
-    );
-
     const message = await this.messagesService.create(
       createMessageDto,
       req.user.userId

@@ -72,12 +72,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
       const payload = this.jwtService.verify(token);
-      console.log('JWT payload:', payload);
       const user = await this.usersService.findOne(payload.sub);
-      console.log('Found user:', user._id);
       client.userId = payload.sub;
       client.user = user;
-      console.log('Set client.userId to:', client.userId);
 
       this.connectedUsers.set(payload.sub, client.id);
 
@@ -98,20 +95,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
           avatar: user.avatar,
         },
       });
-
-      console.log(`User ${user.name} connected with socket ${client.id}`);
     } catch (error) {
-      console.error('WebSocket authentication error:', error);
+      console.error('❌ WebSocket authentication error:', error);
       client.disconnect();
     }
   }
   async handleDisconnect(client: AuthenticatedSocket) {
-    console.log(
-      'Disconnect triggered for client:',
-      client.id,
-      'userId:',
-      client.userId
-    );
     if (client.userId) {
       this.connectedUsers.delete(client.userId);
 
@@ -123,8 +112,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId: client.userId,
         status: 'offline',
       });
-
-      console.log(`User ${client.userId} disconnected`);
     }
   }
   @SubscribeMessage('sendMessage')
@@ -133,9 +120,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
-      console.log(
-        `📨 Received message from ${client.user?.name}: ${createMessageDto.content}`
-      );
       const message = await this.messagesService.create(
         createMessageDto,
         client.userId
@@ -155,9 +139,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Trigger auto-response after a delay
       if (this.autoResponseEnabled) {
-        console.log(
-          `🤖 Auto-response is enabled, will send response in ${this.autoResponseDelay}ms`
-        );
         setTimeout(async () => {
           await this.sendAutoResponse(createMessageDto.chatId, client.userId);
         }, this.autoResponseDelay);
@@ -176,10 +157,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
-      console.log(
-        `📨 Received newMessage event from ${client.user?.name}: ${createMessageDto.content}`
-      );
-
       // Create the message in the database
       const message = await this.messagesService.create(
         createMessageDto,
@@ -210,16 +187,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket
   ) {
     try {
-      console.log(`User ${client.userId} trying to join chat ${data.chatId}`);
-      console.log('Client auth state:', {
-        userId: client.userId,
-        hasUser: !!client.user,
-        userName: client.user?.name,
-      });
-
       // Check if client is authenticated
       if (!client.userId || !client.user) {
-        console.log('Client not authenticated yet, rejecting join request');
+        console.error(
+          '❌ Client not authenticated yet, rejecting join request'
+        );
         return { success: false, error: 'Authentication required' };
       }
 
@@ -291,16 +263,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
   private async sendAutoResponse(chatId: string, originalSenderId: string) {
     try {
-      console.log(
-        `🤖 Sending auto-response to chat ${chatId} from user ${originalSenderId}`
-      );
       // Get a random auto-response message
       const randomMessage =
         this.autoResponseMessages[
           Math.floor(Math.random() * this.autoResponseMessages.length)
         ];
-
-      console.log(`🤖 Selected auto-response message: ${randomMessage}`);
 
       // Create auto-response message DTO
       const autoResponseDto: CreateMessageDto = {
@@ -311,16 +278,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Get or create bot user
       const botUser = await this.getOrCreateBotUser();
-      console.log(`🤖 Bot user: ${botUser.name} (${botUser._id})`);
 
       // Create the auto-response message using the bot-specific method
       const autoMessage = await this.messagesService.createBotMessage(
         autoResponseDto,
         botUser._id.toString()
-      );
-
-      console.log(
-        `🤖 Created auto-response message: ${(autoMessage as any)._id}`
       );
 
       // Emit the auto-response to all chat participants
@@ -333,8 +295,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         randomMessage,
         { chatId, messageId: (autoMessage as any)._id }
       );
-
-      console.log(`🤖 Auto-response sent to chat ${chatId}: ${randomMessage}`);
     } catch (error) {
       console.error('🤖 Error sending auto-response:', error);
     }
@@ -419,14 +379,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async triggerAutoResponseFromAPI(chatId: string, originalSenderId: string) {
     if (this.autoResponseEnabled) {
-      console.log(
-        `🤖 API triggered auto-response for chat ${chatId}, delay: ${this.autoResponseDelay}ms`
-      );
       setTimeout(async () => {
         await this.sendAutoResponse(chatId, originalSenderId);
       }, this.autoResponseDelay);
     } else {
-      console.log('🤖 Auto-response is disabled, skipping API trigger');
+      console.warn('🤖 Auto-response is disabled, skipping API trigger');
     }
   }
 }

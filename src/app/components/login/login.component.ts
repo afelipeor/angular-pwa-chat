@@ -1,5 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -11,6 +16,7 @@ import { LoginCredentials } from '../../models';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
@@ -23,12 +29,12 @@ export class LoginComponent implements OnInit {
   errorMessage = '';
   infoMessage = ''; // For showing session expired message
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
@@ -66,8 +72,7 @@ export class LoginComponent implements OnInit {
       this.authService
         .login(credentials, this.loginForm.value.remember)
         .subscribe({
-          next: (response) => {
-            console.log('Login successful:', response);
+          next: () => {
             // Clear any query params when redirecting after successful login
             this.router.navigate(['/'], { replaceUrl: true });
           },

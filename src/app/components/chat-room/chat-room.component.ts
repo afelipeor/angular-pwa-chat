@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Observable, of, Subject, take, takeUntil } from 'rxjs';
+import { Observable, of, Subject, takeUntil } from 'rxjs';
 import { MessagesResponse } from '../../models';
 import { Chat } from '../../models/chat.model';
 import { Message } from '../../models/message.model';
@@ -71,16 +71,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     // Request notification permission on component init
     this.pushNotificationService.requestNotificationPermission();
 
-    // Debug: Check user authentication state immediately
-    console.log('🔐 ChatRoom init - checking auth state...');
-    const currentUser = this.authService.getCurrentUser();
-    console.log('🔐 Current user on init:', currentUser);
-
-    // Also check observable
-    this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
-      console.log('🔐 User from observable on init:', user);
-    });
-
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.chatId = params['id'];
       if (this.chatId) {
@@ -114,19 +104,14 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
   sendMessage(): void {
     if (this.newMessage.trim()) {
-      console.log('🚀 Sending message:', this.newMessage.trim());
-
       // Debug: Check auth state right before sending
       const authCheck = this.authService.getCurrentUser();
-      console.log('🔐 Auth state before sending:', authCheck);
 
       const messageData: CreateMessageDto = {
         chatId: this.chatId,
         content: this.newMessage.trim(),
         type: 'text',
       };
-
-      console.log('📤 Message data:', messageData);
 
       // Store the message content to check ownership later
       const messageContent = this.newMessage.trim();
@@ -136,28 +121,17 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (message) => {
-            console.log('✅ Message sent successfully:', message);
-            console.log(
-              '🔍 Checking if this is our message:',
-              messageContent,
-              'vs',
-              message.content
-            );
-            console.log('🔍 Message sender:', message.sender);
-
             // For debugging, let's always add the message and let the template handle ownership
             const existingMessage = this.messages.find(
               (m) => m._id === message._id
             );
             if (!existingMessage) {
-              console.log('➕ Adding sent message to local array');
               this.messages.push(message);
               this.cdr.markForCheck();
               setTimeout(() => this.scrollToBottom(), 100);
 
               // Test ownership immediately
               const ownership = this.isOwnMessage(message);
-              console.log('🔍 Immediate ownership check result:', ownership);
             }
           },
           error: (error) => {
@@ -211,7 +185,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (storedUserStr) {
         try {
           currentUser = JSON.parse(storedUserStr);
-          console.log('🔍 Retrieved user from localStorage:', currentUser);
         } catch (e) {
           console.error('❌ Error parsing stored user:', e);
         }
@@ -219,14 +192,14 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
 
     if (!currentUser) {
-      console.log('❌ No current user found anywhere');
+      console.error('❌ No current user found anywhere');
       return false;
     }
 
     // Get current user ID
     const currentUserId = currentUser._id || (currentUser as any).id;
     if (!currentUserId) {
-      console.log('❌ Current user has no ID:', currentUser);
+      console.error('❌ Current user has no ID:', currentUser);
       return false;
     }
 
@@ -239,22 +212,16 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       messageSenderId =
         (message.sender as any)._id || (message.sender as any).id;
     } else {
-      console.log('❌ Invalid message sender:', message.sender);
+      console.error('❌ Invalid message sender:', message.sender);
       return false;
     }
 
     if (!messageSenderId) {
-      console.log('❌ Message sender has no ID:', message.sender);
+      console.error('❌ Message sender has no ID:', message.sender);
       return false;
     }
 
     const isOwn = currentUserId === messageSenderId;
-    console.log('🔍 Message ownership:', {
-      currentUserId,
-      messageSenderId,
-      content: message.content.substring(0, 20) + '...',
-      isOwn,
-    });
 
     return isOwn;
   }
@@ -313,15 +280,10 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
   private setupSocketListeners(): void {
-    console.log('🎧 Setting up socket listeners for chat:', this.chatId);
-
     this.socketService
       .on('newMessage')
       .pipe(takeUntil(this.destroy$))
       .subscribe((message: Message) => {
-        console.log('📨 Received new message via socket:', message);
-        console.log('🔍 Message sender via WebSocket:', message.sender);
-
         if (message.chatId === this.chatId) {
           // Check if message already exists to avoid duplicates
           const existingMessage = this.messages.find(
@@ -329,13 +291,9 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
           );
           if (!existingMessage) {
             this.messages.push(message);
-            console.log('➕ Added new message via WebSocket');
 
             // Test ownership immediately for WebSocket messages
             const ownership = this.isOwnMessage(message);
-            console.log('🔍 WebSocket message ownership:', ownership);
-          } else {
-            console.log('⏭️ Message already exists, skipping duplicate');
           }
 
           // Trigger change detection to update the view
@@ -343,7 +301,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
           // Show push notification if message is not from current user
           const isOwnMessage = this.isOwnMessage(message);
-          console.log('🔍 Is own message check:', isOwnMessage);
 
           if (!isOwnMessage) {
             const senderName = (message.sender as any)?.name || 'Someone';
@@ -351,29 +308,15 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
               ? `${this.chatName}`
               : senderName;
 
-            console.log(
-              '🔔 Showing push notification for:',
-              notificationTitle,
-              message.content
-            );
             this.pushNotificationService.showNotification(
               notificationTitle,
               message.content,
               { chatId: this.chatId, messageId: message._id }
             );
-          } else {
-            console.log('⏭️ Skipping notification for own message');
           }
 
           // Scroll to bottom after new message and change detection
           setTimeout(() => this.scrollToBottom(), 100);
-        } else {
-          console.log(
-            '❓ Message not for this chat. Message chatId:',
-            message.chatId,
-            'Current chatId:',
-            this.chatId
-          );
         }
       });
 
@@ -381,7 +324,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       .on('userTyping')
       .pipe(takeUntil(this.destroy$))
       .subscribe((data: any) => {
-        console.log('⌨️ Typing event:', data);
         if (data.isTyping && !this.typingUsers.includes(data.userName)) {
           this.typingUsers.push(data.userName);
         } else {
@@ -457,7 +399,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
             messages = (response as MessagesResponse).messages;
           }
           this.messages = messages; // Show messages in the order received (oldest first)
-          console.log('📥 Loaded messages:', messages.length);
           this.cdr.markForCheck();
           // Scroll to bottom after loading messages
           setTimeout(() => this.scrollToBottom(), 100);
@@ -584,7 +525,6 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
 
     if (unreadMessages.length > 0) {
-      console.log(`📖 Marking ${unreadMessages.length} messages as read`);
       // Call backend to mark messages as read
       unreadMessages.forEach((message) => {
         this.messagesService.markAsRead(message._id).subscribe({

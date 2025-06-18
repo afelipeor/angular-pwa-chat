@@ -53,12 +53,9 @@ let SocketGateway = class SocketGateway {
                 return;
             }
             const payload = this.jwtService.verify(token);
-            console.log('JWT payload:', payload);
             const user = await this.usersService.findOne(payload.sub);
-            console.log('Found user:', user._id);
             client.userId = payload.sub;
             client.user = user;
-            console.log('Set client.userId to:', client.userId);
             this.connectedUsers.set(payload.sub, client.id);
             await this.usersService.updateStatus(payload.sub, 'online');
             const userChats = await this.chatsService.findAll(payload.sub);
@@ -74,15 +71,13 @@ let SocketGateway = class SocketGateway {
                     avatar: user.avatar,
                 },
             });
-            console.log(`User ${user.name} connected with socket ${client.id}`);
         }
         catch (error) {
-            console.error('WebSocket authentication error:', error);
+            console.error('❌ WebSocket authentication error:', error);
             client.disconnect();
         }
     }
     async handleDisconnect(client) {
-        console.log('Disconnect triggered for client:', client.id, 'userId:', client.userId);
         if (client.userId) {
             this.connectedUsers.delete(client.userId);
             await this.usersService.updateStatus(client.userId, 'offline');
@@ -90,19 +85,16 @@ let SocketGateway = class SocketGateway {
                 userId: client.userId,
                 status: 'offline',
             });
-            console.log(`User ${client.userId} disconnected`);
         }
     }
     async handleMessage(createMessageDto, client) {
         try {
-            console.log(`📨 Received message from ${client.user?.name}: ${createMessageDto.content}`);
             const message = await this.messagesService.create(createMessageDto, client.userId);
             this.server
                 .to(`chat-${createMessageDto.chatId}`)
                 .emit('newMessage', message);
             await this.sendPushNotificationToChat(createMessageDto.chatId, client.userId, message);
             if (this.autoResponseEnabled) {
-                console.log(`🤖 Auto-response is enabled, will send response in ${this.autoResponseDelay}ms`);
                 setTimeout(async () => {
                     await this.sendAutoResponse(createMessageDto.chatId, client.userId);
                 }, this.autoResponseDelay);
@@ -116,7 +108,6 @@ let SocketGateway = class SocketGateway {
     }
     async handleNewMessage(createMessageDto, client) {
         try {
-            console.log(`📨 Received newMessage event from ${client.user?.name}: ${createMessageDto.content}`);
             const message = await this.messagesService.create(createMessageDto, client.userId);
             this.server
                 .to(`chat-${createMessageDto.chatId}`)
@@ -131,14 +122,8 @@ let SocketGateway = class SocketGateway {
     }
     async handleJoinChat(data, client) {
         try {
-            console.log(`User ${client.userId} trying to join chat ${data.chatId}`);
-            console.log('Client auth state:', {
-                userId: client.userId,
-                hasUser: !!client.user,
-                userName: client.user?.name,
-            });
             if (!client.userId || !client.user) {
-                console.log('Client not authenticated yet, rejecting join request');
+                console.error('❌ Client not authenticated yet, rejecting join request');
                 return { success: false, error: 'Authentication required' };
             }
             await this.chatsService.findOne(data.chatId, client.userId);
@@ -182,21 +167,16 @@ let SocketGateway = class SocketGateway {
     }
     async sendAutoResponse(chatId, originalSenderId) {
         try {
-            console.log(`🤖 Sending auto-response to chat ${chatId} from user ${originalSenderId}`);
             const randomMessage = this.autoResponseMessages[Math.floor(Math.random() * this.autoResponseMessages.length)];
-            console.log(`🤖 Selected auto-response message: ${randomMessage}`);
             const autoResponseDto = {
                 chatId,
                 content: randomMessage,
                 type: 'text',
             };
             const botUser = await this.getOrCreateBotUser();
-            console.log(`🤖 Bot user: ${botUser.name} (${botUser._id})`);
             const autoMessage = await this.messagesService.createBotMessage(autoResponseDto, botUser._id.toString());
-            console.log(`🤖 Created auto-response message: ${autoMessage._id}`);
             this.server.to(`chat-${chatId}`).emit('newMessage', autoMessage);
             await this.notificationsService.sendNotificationToUser(originalSenderId, 'New message from ChatBot', randomMessage, { chatId, messageId: autoMessage._id });
-            console.log(`🤖 Auto-response sent to chat ${chatId}: ${randomMessage}`);
         }
         catch (error) {
             console.error('🤖 Error sending auto-response:', error);
@@ -244,13 +224,12 @@ let SocketGateway = class SocketGateway {
     }
     async triggerAutoResponseFromAPI(chatId, originalSenderId) {
         if (this.autoResponseEnabled) {
-            console.log(`🤖 API triggered auto-response for chat ${chatId}, delay: ${this.autoResponseDelay}ms`);
             setTimeout(async () => {
                 await this.sendAutoResponse(chatId, originalSenderId);
             }, this.autoResponseDelay);
         }
         else {
-            console.log('🤖 Auto-response is disabled, skipping API trigger');
+            console.warn('🤖 Auto-response is disabled, skipping API trigger');
         }
     }
 };

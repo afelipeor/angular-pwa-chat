@@ -88,11 +88,12 @@ module.exports = [
       'no-debugger': 'error',
     },
   },
-
   // HTML template files configuration
   {
     files: ['**/*.html'],
-    extends: ['plugin:@angular-eslint/template/recommended'],
+    languageOptions: {
+      parser: require('@angular-eslint/template-parser'),
+    },
     plugins: {
       '@angular-eslint/template': angularTemplateEslint,
     },
@@ -106,9 +107,6 @@ module.exports = [
         'error',
         { maxComplexity: 3 },
       ],
-      'prefer-at-empty': 'warn',
-      'prefer-control-flow': 'error',
-      'prefer-static-string-properties': 'error',
       '@angular-eslint/template/cyclomatic-complexity': [
         'error',
         { maxComplexity: 5 },
