@@ -38,6 +38,8 @@ import { AutoResponseToggleComponent } from '../auto-response-toggle/auto-respon
 })
 export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
+  @ViewChild(AutoResponseToggleComponent)
+  autoResponseToggle!: AutoResponseToggleComponent;
 
   chatId: string = '';
   chat: Chat | null = null;
@@ -56,6 +58,12 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   readonly authService = inject(AuthService);
   readonly socketService = inject(SocketService);
 
+  private readonly systemUser: User = {
+    _id: 'system',
+    name: 'System',
+    email: 'system@app.com',
+  };
+
   constructor() {
     this.currentUser$ = of(this.authService.getCurrentUser());
   }
@@ -72,6 +80,10 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  ngAfterViewChecked(): void {
+    this.scrollToBottom();
+  }
+
   ngOnDestroy(): void {
     if (this.chatId) {
       this.leaveChat();
@@ -80,10 +92,113 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.destroy$.complete();
   }
 
-  ngAfterViewChecked(): void {
-    this.scrollToBottom();
+  get chatName(): string {
+    return this.chat?.name || '';
   }
 
+  get isGroup(): boolean {
+    return this.chat?.isGroup || false;
+  }
+  sendMessage(): void {
+    if (this.newMessage.trim()) {
+      const messageData: CreateMessageDto = {
+        chatId: this.chatId,
+        content: this.newMessage.trim(),
+        type: 'text',
+      };
+
+      this.messagesService
+        .sendMessage(messageData)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (message) => {
+            console.log('Message sent successfully:', message);
+
+            // Check if auto-response is enabled and trigger system message after delay
+            if (
+              this.autoResponseToggle &&
+              this.autoResponseToggle.autoResponseEnabled
+            ) {
+              const delayMs = this.autoResponseToggle.delaySeconds * 1000;
+              console.log(
+                `Auto-response enabled, sending system message after ${this.autoResponseToggle.delaySeconds} seconds`
+              );
+
+              setTimeout(() => {
+                this.systemMessage();
+              }, delayMs);
+            }
+          },
+          error: (error) => {
+            console.error('Error sending message:', error);
+          },
+        });
+
+      this.newMessage = '';
+    }
+  }
+
+  // Formats a timestamp (number or string) to a human-readable time string
+  getMessageTime(timestamp: number | string | Date): string {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  onTyping(): void {
+    this.socketService.emit('typing', { chatId: this.chatId, isTyping: true });
+
+    // Stop typing after 1 second of no input
+    setTimeout(() => {
+      this.socketService.emit('typing', {
+        chatId: this.chatId,
+        isTyping: false,
+      });
+    }, 1000);
+  }
+
+  isOwnMessage(message: Message): boolean {
+    return (
+      this.authService.getCurrentUser()?._id ===
+      ((message.sender as any)._id || message.sender)
+    );
+  }
+
+  formatTime(timestamp: string | Date): string {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  getChatInitials(): string {
+    return (
+      this.chat?.name
+        ?.split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase() || ''
+    );
+  }
+
+  getTypingText(): string {
+    if (this.typingUsers.length === 0) return '';
+    if (this.typingUsers.length === 1)
+      return `${this.typingUsers[0]} is typing...`;
+    return `${this.typingUsers.join(', ')} are typing...`;
+  }
+
+  goBack(): void {
+    this.router.navigate(['/']);
+  }
+
+  private scrollToBottom(): void {
+    try {
+      if (this.messagesContainer) {
+        this.messagesContainer.nativeElement.scrollTop =
+          this.messagesContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Error scrolling to bottom:', err);
+    }
+  }
   private setupSocketListeners(): void {
     this.socketService
       .on('newMessage')
@@ -164,97 +279,24 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
   }
 
-  sendMessage(): void {
-    if (this.newMessage.trim()) {
-      const messageData: CreateMessageDto = {
-        chatId: this.chatId,
-        content: this.newMessage.trim(),
-        type: 'text',
-      };
+  private systemMessage(): void {
+    const message: CreateMessageDto = {
+      content: 'This is a system message.',
+      chatId: this.chatId,
+      type: 'text',
+    };
 
-      this.messagesService
-        .sendMessage(messageData)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (message) => {
-            console.log('Message sent successfully:', message);
-          },
-          error: (error) => {
-            console.error('Error sending message:', error);
-          },
-        });
-
-      this.newMessage = '';
-    }
-  }
-
-  // Formats a timestamp (number or string) to a human-readable time string
-  getMessageTime(timestamp: number | string | Date): string {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-
-  onTyping(): void {
-    this.socketService.emit('typing', { chatId: this.chatId, isTyping: true });
-
-    // Stop typing after 1 second of no input
-    setTimeout(() => {
-      this.socketService.emit('typing', {
-        chatId: this.chatId,
-        isTyping: false,
+    this.socketService.emit('newMessage', message);
+    this.messagesService
+      .sendMessage(message)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (message) => {
+          console.log('Message sent successfully:', message);
+        },
+        error: (error) => {
+          console.error('Error sending message:', error);
+        },
       });
-    }, 1000);
-  }
-
-  isOwnMessage(message: Message): boolean {
-    return (
-      this.authService.getCurrentUser()?._id ===
-      ((message.sender as any)._id || message.sender)
-    );
-  }
-
-  formatTime(timestamp: string | Date): string {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-
-  getChatInitials(): string {
-    return (
-      this.chat?.name
-        ?.split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase() || ''
-    );
-  }
-
-  get chatName(): string {
-    return this.chat?.name || '';
-  }
-
-  get isGroup(): boolean {
-    return this.chat?.isGroup || false;
-  }
-
-  getTypingText(): string {
-    if (this.typingUsers.length === 0) return '';
-    if (this.typingUsers.length === 1)
-      return `${this.typingUsers[0]} is typing...`;
-    return `${this.typingUsers.join(', ')} are typing...`;
-  }
-
-  goBack(): void {
-    this.router.navigate(['/']);
-  }
-
-  private scrollToBottom(): void {
-    try {
-      if (this.messagesContainer) {
-        this.messagesContainer.nativeElement.scrollTop =
-          this.messagesContainer.nativeElement.scrollHeight;
-      }
-    } catch (err) {
-      console.error('Error scrolling to bottom:', err);
-    }
   }
 }
